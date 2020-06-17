@@ -11,14 +11,42 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-
+float *****testff(float ****t);
+void Initialize_parameters(struct init_param_ *ptr_init_param);
 float ***make_3darray(int channels,int dim);
 struct act_func_data_
 {
+	/*
+	 * Z: The output as raw of a layer exactly before we apply the activation function on it.
+	 * dA:Thats the difference on the results (after activation function) we get during backprop from the next/forward layer so we
+	 * can take advantage of them and backpropagate the error back to activation function backward and then to the previous layer.
+	 * Code: Number of commamd: 1)sigmoid, 2)Sigmoid_backward, 3)Relu, 4)Relu_backward
+	 * Channels: Number of channel of the specific input matrix
+	 * Dim: We assume that we have a square image so the height == width == dim
+	 */
 	int code, channels, dim;
 	float ***dA, ***Z;
 
 }act_func_data;
+
+struct init_param_
+{
+	/*
+	 * Filters: They made of all the filters for the forward step, including the final 1x1 conv. filters(out_F), These filters 4D dim
+	 * as follows: (num_f, num_in_ch, f_h, f_w) and these filters are saved sequencially in a Filters array with the type of(*****)
+	 * Bias: Thats the double pointer matric which keeps all the bias values of the network. We need 1-d array for the scalar values
+	 * of each bias so the final Bias matrix it is type of (**),so it can include all the different sizes of bias.
+	 * F_dc: This matrix contains the decoder upsampling transposed convolution filters.Its type is the same as Filters matrix.
+	 */
+	int layers, num_f, trim;
+	float *****filters,**bias, *****f_dc;
+
+}init_param;
+
+void Initialize_parameters(struct init_param_ *ptr_init_param)
+{
+
+}
 
 float ***Activation_Function(struct act_func_data_ *act_func_data)
 {
@@ -89,8 +117,24 @@ float ***make_3darray(int channels,int dim)
 	for (i = 0; i< dim1; i++)
 	{
 		array[i] = (float **) malloc(dim2*sizeof(float *));
-		for (j = 0; j < dim2; j++) {
+		for (j = 0; j < dim2; j++)
 			array[i][j] = (float *)malloc(dim3*sizeof(float));
+	}
+	return array;
+}
+float ****make_4darray(int num,int channels,int dim)
+{
+	int dim0=num, dim1=channels, dim2=dim, dim3=dim;
+	int i,j,k;
+	float **** array = (float ****)malloc(dim0*sizeof(float***));
+
+	for (i = 0; i< dim0; i++)
+	{
+		array[i] = (float ***) malloc(dim1*sizeof(float **));
+		for (j = 0; j < dim1; j++) {
+			array[i][j] = (float **)malloc(dim2*sizeof(float *));
+			for (k = 0; k < dim2; k++)
+				array[i][j][k] = (float *)malloc(dim3*sizeof(float));
 		}
 	}
 	return array;
@@ -121,7 +165,9 @@ int main(void) {
 	ptr_act_func_data->Z = array;
 	float ***res = Activation_Function(ptr_act_func_data);
 
-
+	float ****test = make_4darray(1,2,3);
+	//struct act_func_data_ *ptr_init_params = &init_params;
 
 	return EXIT_SUCCESS;
 }
+
