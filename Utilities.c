@@ -2,9 +2,9 @@
  ============================================================================
  Name        : Utilities.c
  Author      : Labiz
- Version     :
+ Version     : V0.5
  Copyright   : Your copyright notice
- Description : Hello World in C, Ansi-style
+ Description : Utilities of U-Net, including initializations and important 3d,4d matrix building tools
  ============================================================================
  */
 
@@ -17,6 +17,7 @@ float Random_Normal(int loc, float scale);
 float *****testff(float ****t);
 float ****make_4darray(int num,int channels,int dim);
 float ***make_3darray(int channels,int dim);
+void hello();
 ////////////////////////////////////////////////////
 
 struct act_func_data_
@@ -56,6 +57,96 @@ struct init_param_
 	float *****filters,**bias, *****f_dc,**b_dc;
 
 }init_param;
+struct init_GN_
+{
+	/*
+	 *-Layers: We need the number of forward layers(like in init_param) so we can calculate the final number of elements
+	 *gamma/beta matrix will have.
+	 *-Starting_num_ch: This is the number of filters we apply in the very first convolution of the net, which is always 16,
+	 *that way we will able to calculate the rest dimension of gamma/beta sub-matrices.
+	 *-Gamma/Beta: These two 'big' matrices are going to keep all the elements(sub-arrays) of each layer, so we can access them later.
+	 */
+	int layers, starting_num_ch, trim;
+	float **gamma, **beta;
+
+}init_GN;
+
+void Initialize_GN(struct init_GN_ *ptr_init_GN)//Group Normalization Init.
+{
+	int layers, num_ch, trim;
+	layers = ptr_init_GN->layers; //We PUT THE FORWARD number of layers!! so it can match the other ini func
+	trim = ptr_init_GN->trim; //optimal setting:0.05.
+	num_ch = ptr_init_GN->starting_num_ch;//DEFAULT:16
+	float **gamma = (float **)malloc((layers*2*2-1)*sizeof(float *));
+	float **beta = (float **)malloc((layers*2*2-1)*sizeof(float *));
+
+	//Following the same logic as the init_param function:
+	//First we build the forward pass gamma/beta, then the upsampling and finally the out gamma/beta(10th layer).
+	int last_pos=0,loc=0;
+	for (int i=0; i<layers; i++)
+	{
+		if(i != 0) //after 1st iteration, double the amount of filters of each layer
+			num_ch = num_ch*2; //*16*, 32, 64, 128, 256
+		float *gamma1 = (float *)malloc(num_ch*sizeof(float));
+		float *gamma2 = (float *)malloc(num_ch*sizeof(float));
+		float *beta1 = (float *)malloc(num_ch*sizeof(float));
+		float *beta2 = (float *)malloc(num_ch*sizeof(float));
+		for (int x=0; x < num_ch; x++)
+		{
+			gamma1[x] =  Random_Normal(loc, trim);
+			gamma2[x] =  Random_Normal(loc, trim);
+			beta1[x] =  Random_Normal(loc, trim);
+			beta2[x] =  Random_Normal(loc, trim);
+		}
+
+		gamma[2*i] = gamma1;
+		gamma[2*i+1] = gamma2;
+		beta[2*i] = beta1;
+		beta[2*i+1] = beta2;
+		last_pos++;
+	}
+
+	for (int i=1; i<layers; i++)
+	{
+		num_ch = (int)num_ch/2;//It will be always power of number of filters,so the division will give back integer
+
+		float *gamma1 = (float *)malloc(num_ch*sizeof(float));
+		float *gamma2 = (float *)malloc(num_ch*sizeof(float));
+		float *beta1 = (float *)malloc(num_ch*sizeof(float));
+		float *beta2 = (float *)malloc(num_ch*sizeof(float));
+		for (int x=0; x < num_ch; x++)
+		{
+			gamma1[x] =  Random_Normal(loc, trim);
+			gamma2[x] =  Random_Normal(loc, trim);
+			beta1[x] =  Random_Normal(loc, trim);
+			beta2[x] =  Random_Normal(loc, trim);
+		}
+
+		gamma[2*last_pos] = gamma1;
+		gamma[2*last_pos+1] = gamma2;
+		beta[2*last_pos] = beta1;
+		beta[2*last_pos+1] = beta2;
+		last_pos++;
+	}
+	//Now we build last layer/output group normalization paramenters
+	num_ch = 1;
+
+	float gamma1; //= (float *)malloc(num_ch*sizeof(float));
+	float beta1; //= (float *)malloc(num_ch*sizeof(float));
+
+	gamma1 = Random_Normal(loc, trim);
+	beta1 =	Random_Normal(loc, trim);
+
+	gamma[last_pos*2] = &gamma1;
+	beta[last_pos*2] = &beta1;
+
+	//Filling up the 'big' arrays of all the layer data
+	ptr_init_GN->gamma = gamma;
+	ptr_init_GN->beta = beta;
+
+
+}
+
 
 void Initialize_Parameters(struct init_param_ *ptr_init_param)
 {
@@ -113,7 +204,7 @@ void Initialize_Parameters(struct init_param_ *ptr_init_param)
 		filters[2*i +1] = f2;
 		bias[2*i] = b1;
 		bias[2*i +1] = b2;
-		last_pos = i; //last position of the i that shows the current layer, we will need it later so we keep saving filters and
+		last_pos++; //last position of the i that shows the current layer, we will need it later so we keep saving filters and
 		//bias sequencially.
 	}
 	for (int i = 1 ; i < layers; i++)
@@ -166,6 +257,24 @@ void Initialize_Parameters(struct init_param_ *ptr_init_param)
 		b_dc[i] = bdc;
 		last_pos++;
 	}
+	printf("\nlast_pos:%d",last_pos);
+	//Now build the last one 1x1 conv filters
+	num_f = 1; //we need 1 channels for the output(same as input)
+	float ****out_f = make_4darray(num_f, ch_in, 1);//1x1 output filter
+	float *out_b = (float *)malloc(num_f*sizeof(float));
+	for (int x=0;x<num_f;x++)
+	{
+		for (int y=0;y<ch_in;y++)
+			for (int z=0;z<1;z++)
+				for(int w=0;w<1;w++)
+				{
+					out_f[x][y][z][w] = Random_Normal(loc, trim);
+				}
+		out_b[x] =  Random_Normal(loc, trim);
+	}
+	filters[last_pos*2] = out_f;
+	bias[last_pos*2] = out_b;
+
 	ptr_init_param->filters = filters;
 	ptr_init_param->bias = bias;
 	ptr_init_param->f_dc = f_dc;
@@ -291,47 +400,14 @@ int main(void) {
 			for (int k=0;k<2;k++)
 				array[i][j][k] = i+j+k;
 				//printf("%d\t", array[i][j][k]);//*(*(*(pA +i) + j) +k));
+	///////////////////////////////////////////////////////
+	////////////////// TESTING SECTION ////////////////////
 
 
-	struct init_param_ *ptr_init_param = &init_param;
 
-	//Initialize_parameters(ptr_init_param);
-	ptr_init_param->layers = 5;
-	ptr_init_param->num_f = 16;
-	ptr_init_param->trim = 0.1;
-	printf("yo\n");
-	Initialize_Parameters(ptr_init_param);
-	float *****filters = ptr_init_param->filters;
-	float *****f_dc = ptr_init_param->f_dc;
-	float **bias= ptr_init_param->bias;
-	float **b_dc=ptr_init_param->b_dc;
-
-
-	int max_layers = 10;
-	int filter_layer = 1;
-	float ****f_t1,****f_t2;
-	f_t1 = filters[filter_layer - 1];
-	f_t2 = filters[filter_layer];
-	// Finding dimensions of the layer filters using only layer number
-	int num_filt,input_ch,f_dim;
-	num_filt = 16;
-	input_ch =1;
-	f_dim=3;
-	/////////////////////////
-	for (int i=0;i<num_filt;i++)
-	{
-		for (int j=0;j<input_ch;j++)
-		{
-			for (int k=0;k<f_dim;k++)
-			{
-				printf("\n");
-				for (int l=0;l<f_dim;l++)
-				{
-					printf("%.2f\t",f_t1[i][j][k][l]);
-				}
-			}
-		}
-	}
+	///////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////
+	printf("\nSuccess!");
 	return EXIT_SUCCESS;
 }
 
