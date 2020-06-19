@@ -57,7 +57,7 @@ struct init_param_
 
 }init_param;
 
-void Initialize_parameters(struct init_param_ *ptr_init_param)
+void Initialize_Parameters(struct init_param_ *ptr_init_param)
 {
 	int layers = ptr_init_param->layers;//number of layers(just the encoder-downsampling number)
 	int num_f = ptr_init_param->num_f;  //initial number of filters(they will be doubled for each layer)
@@ -79,9 +79,9 @@ void Initialize_parameters(struct init_param_ *ptr_init_param)
 		//Building f1
 		float ****f1 = make_4darray(num_f, ch_in, 3);//3x3 filter alwars for the simple convolution
 		float *b1 = (float *)malloc(num_f*sizeof(float));
-		for (int x=0;x<1;x++)
+		for (int x=0;x<num_f;x++)
 		{
-			for (int y=0;y<2;y++)
+			for (int y=0;y<ch_in;y++)
 				for (int z=0;z<3;z++)
 					for(int w=0;w<3;w++)
 					{
@@ -99,9 +99,9 @@ void Initialize_parameters(struct init_param_ *ptr_init_param)
 
 		float ****f2 = make_4darray(num_f, ch_in, 3);//3x3 filter alwars for the simple convolution
 		float *b2 = (float *)malloc(num_f*sizeof(float));
-		for (int x=0;x<1;x++)
+		for (int x=0;x<num_f;x++)
 		{
-			for (int y=0;y<2;y++)
+			for (int y=0;y<ch_in;y++)
 				for (int z=0;z<3;z++)
 					for(int w=0;w<3;w++)
 					{
@@ -116,7 +116,6 @@ void Initialize_parameters(struct init_param_ *ptr_init_param)
 		last_pos = i; //last position of the i that shows the current layer, we will need it later so we keep saving filters and
 		//bias sequencially.
 	}
-
 	for (int i = 1 ; i < layers; i++)
 	{
 		num_f = (int)num_f/2;//It will be always power of number of filters,so the division will give back integer
@@ -125,9 +124,9 @@ void Initialize_parameters(struct init_param_ *ptr_init_param)
 		float *bdc = (float *)malloc(num_f*sizeof(float));
 		float ****f1 = make_4darray(num_f, ch_in, 3);//3x3 filter always for the simple convolution
 		float *b1 = (float *)malloc(num_f*sizeof(float));
-		for (int x=0;x<1;x++)
+		for (int x=0;x<num_f;x++)
 		{
-			for (int y=0;y<2;y++)
+			for (int y=0;y<ch_in;y++)
 			{
 				for (int z=0;z<3;z++)
 				{
@@ -148,9 +147,9 @@ void Initialize_parameters(struct init_param_ *ptr_init_param)
 
 		float ****f2 = make_4darray(num_f, ch_in, 3);//3x3 filter always for the simple convolution
 		float *b2 = (float *)malloc(num_f*sizeof(float));
-		for (int x=0;x<1;x++)
+		for (int x=0;x<num_f;x++)
 		{
-			for (int y=0;y<2;y++)
+			for (int y=0;y<ch_in;y++)
 				for (int z=0;z<3;z++)
 					for(int w=0;w<3;w++)
 					{
@@ -294,21 +293,45 @@ int main(void) {
 				//printf("%d\t", array[i][j][k]);//*(*(*(pA +i) + j) +k));
 
 
-	struct act_func_data_ *ptr_act_func_data = &act_func_data;
-
-	ptr_act_func_data->channels = channels;
-	ptr_act_func_data->code = code;
-	ptr_act_func_data->dim = dim;
-	ptr_act_func_data->Z = array;
-	float ***res = Activation_Function(ptr_act_func_data);
-
-	float ****test = make_4darray(1,2,3);
 	struct init_param_ *ptr_init_param = &init_param;
 
 	//Initialize_parameters(ptr_init_param);
-	float tt=(float)3/2;
-	printf("%f", tt);
+	ptr_init_param->layers = 5;
+	ptr_init_param->num_f = 16;
+	ptr_init_param->trim = 0.1;
+	printf("yo\n");
+	Initialize_Parameters(ptr_init_param);
+	float *****filters = ptr_init_param->filters;
+	float *****f_dc = ptr_init_param->f_dc;
+	float **bias= ptr_init_param->bias;
+	float **b_dc=ptr_init_param->b_dc;
 
+
+	int max_layers = 10;
+	int filter_layer = 1;
+	float ****f_t1,****f_t2;
+	f_t1 = filters[filter_layer - 1];
+	f_t2 = filters[filter_layer];
+	// Finding dimensions of the layer filters using only layer number
+	int num_filt,input_ch,f_dim;
+	num_filt = 16;
+	input_ch =1;
+	f_dim=3;
+	/////////////////////////
+	for (int i=0;i<num_filt;i++)
+	{
+		for (int j=0;j<input_ch;j++)
+		{
+			for (int k=0;k<f_dim;k++)
+			{
+				printf("\n");
+				for (int l=0;l<f_dim;l++)
+				{
+					printf("%.2f\t",f_t1[i][j][k][l]);
+				}
+			}
+		}
+	}
 	return EXIT_SUCCESS;
 }
 
