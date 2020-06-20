@@ -11,13 +11,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <main.h>
 
 ////////////// Function Naming init. ////////////////
-float Random_Normal(int loc, float scale);
-float *****testff(float ****t);
-float ****make_4darray(int num,int channels,int dim);
-float ***make_3darray(int channels,int dim);
-void hello();
+
 ////////////////////////////////////////////////////
 
 struct act_func_data_
@@ -386,28 +383,48 @@ int main(void) {
 	time_t t;
 	srand((unsigned) time(&t));
 
-	puts("Hello World!"); /* prints Hello World! */
+	puts("Main function init!");
 
 	int channels,code,dim;
 	code = 1;//sigmoid(approximation)
 	channels = 2;
-	dim = 2;
+	dim = 4;
 
 	float ***array;
 	array = make_3darray(channels,dim);
-	for (int i=0;i<2;i++)
-		for (int j=0;j<2;j++)
-			for (int k=0;k<2;k++)
+	for (int i=0;i<channels;i++)
+	{
+		for (int j=0;j<dim;j++)
+		{
+			for (int k=0;k<dim;k++)
+			{
 				array[i][j][k] = i+j+k;
-				//printf("%d\t", array[i][j][k]);//*(*(*(pA +i) + j) +k));
+				printf("%f\t", array[i][j][k]);//*(*(*(pA +i) + j) +k));
+			}
+			printf("\n");
+		}
+		printf("\n");
+	}
+
 	///////////////////////////////////////////////////////
 	////////////////// TESTING SECTION ////////////////////
 
+	struct maxpool_data_ *ptr_maxpool_data= &maxpool_data;
+	ptr_maxpool_data->image = array;
+	ptr_maxpool_data->channels=channels;
+	ptr_maxpool_data->dim=dim;
+	maxpool(ptr_maxpool_data);
+	float ***res = ptr_maxpool_data->output;
+	int o_dim = ptr_maxpool_data->o_dim;
 
+	for (int i=0;i<channels;i++)
+		for (int j=0;j<o_dim;j++)
+			for (int k=0;k<o_dim;k++)
+				//printf("%f\t", res[i][j][k]);//*(*(*(pA +i) + j) +k));
 
 	///////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////
-	printf("\nSuccess!");
+	printf("\nSuccess! - No Segmentation faults!");
 	return EXIT_SUCCESS;
 }
 
