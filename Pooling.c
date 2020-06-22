@@ -48,5 +48,73 @@ void maxpool(struct maxpool_data_ *ptr_maxpool_data)
 	}
 	ptr_maxpool_data->output=output;
 	ptr_maxpool_data->o_dim=o_dim;
-
 }
+
+void maxpool_backward(struct maxpoolbackward_data_ *ptr_maxpoolbackward_data)
+{
+	int f=2,s=2,ch_num,dim,o_dim,max,index;
+	float ***dpool,***conv,***output;
+	o_dim = (dim-1)*s+f;
+	ch_num = ptr_maxpoolbackward_data->channels;
+	dim = ptr_maxpoolbackward_data->dim;
+	dpool = ptr_maxpoolbackward_data->dpool;
+	conv = ptr_maxpoolbackward_data->conv;
+
+	output = make_3darray(ch_num,o_dim);
+	//Important: We need to fill output with zeros!!!
+
+	for (int i=0; i<ch_num; i++)
+	{
+		for (int x=0; x<dim ; x++)
+		{
+			for(int y=0; y<dim ; y++)
+			{
+				max = -100000;
+				for(int j=s*x; j<(s*x+f) ;j++)///take and examine for max element a sub-part(2x2) of the main matrix
+					{
+						for(int z=s*y; z<(s*y+f); z++)
+						{
+							if(conv[i][j][z]> max)
+							{
+								max = conv[i][j][z];
+								//00=0, 01=1, 10=2, 11=3
+								index = (2-((s*x+f)-j))*2+(2-((s*y+f)-z));
+							}
+						}
+					}
+				if(index == 0)
+				{
+					output[i][x*s][y*s] = dpool[i][x][y];
+					output[i][x*s+0][y*s+1] = 0;
+					output[i][x*s+1][y*s+0] = 0;
+					output[i][x*s+1][y*s+1] = 0;
+				}
+				else if(index == 1)
+				{
+					output[i][x*s][y*s] = 0;
+					output[i][x*s+0][y*s+1] = dpool[i][x][y];
+					output[i][x*s+1][y*s+0] = 0;
+					output[i][x*s+1][y*s+1] = 0;
+				}
+				else if (index == 2)
+				{
+					output[i][x*s][y*s] = 0;
+					output[i][x*s+0][y*s+1] = 0;
+					output[i][x*s+1][y*s+0] = dpool[i][x][y];
+					output[i][x*s+1][y*s+1] = 0;
+				}
+				else
+				{
+					output[i][x*s][y*s] = 0;
+					output[i][x*s+0][y*s+1] = 0;
+					output[i][x*s+1][y*s+0] = 0;
+					output[i][x*s+1][y*s+1] = dpool[i][x][y];
+				}
+			}
+		}
+	}
+	ptr_maxpoolbackward_data->output = output;
+	ptr_maxpoolbackward_data->o_dim = o_dim;
+}
+
+

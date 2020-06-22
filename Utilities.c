@@ -17,57 +17,6 @@
 
 ////////////////////////////////////////////////////
 
-struct act_func_data_
-{
-	/*
-	 * Z: The output as raw of a layer exactly before we apply the activation function on it.
-	 * dA:Thats the difference on the results (after activation function) we get during backprop from the next/forward layer so we
-	 * can take advantage of them and backpropagate the error back to activation function backward and then to the previous layer.
-	 * Code: Number of commamd: 1)sigmoid, 2)Sigmoid_backward, 3)Relu, 4)Relu_backward
-	 * Channels: Number of channel of the specific input matrix
-	 * Dim: We assume that we have a square image so the height == width == dim
-	 */
-	int code, channels, dim;
-	float ***dA, ***Z;
-
-}act_func_data;
-
-struct GP_arrays_ //General purpose arrays
-{
-	float *dim1;
-	float **dim2;
-	float ***dim3;
-	float ****dim4;
-	float *****dim5;
-}GP_arrays;
-
-struct init_param_
-{
-	/*
-	 * Filters: They made of all the filters for the forward step, including the final 1x1 conv. filters(out_F), These filters 4D dim
-	 * as follows: (num_f, num_in_ch, f_h, f_w) and these filters are saved sequencially in a Filters array with the type of(*****)
-	 * Bias: Thats the double pointer matric which keeps all the bias values of the network. We need 1-d array for the scalar values
-	 * of each bias so the final Bias matrix it is type of (**),so it can include all the different sizes of bias.
-	 * F_dc: This matrix contains the decoder upsampling transposed convolution filters.Its type is the same as Filters matrix.
-	 */
-	int layers, num_f, trim;
-	float *****filters,**bias, *****f_dc,**b_dc;
-
-}init_param;
-struct init_GN_
-{
-	/*
-	 *-Layers: We need the number of forward layers(like in init_param) so we can calculate the final number of elements
-	 *gamma/beta matrix will have.
-	 *-Starting_num_ch: This is the number of filters we apply in the very first convolution of the net, which is always 16,
-	 *that way we will able to calculate the rest dimension of gamma/beta sub-matrices.
-	 *-Gamma/Beta: These two 'big' matrices are going to keep all the elements(sub-arrays) of each layer, so we can access them later.
-	 */
-	int layers, starting_num_ch, trim;
-	float **gamma, **beta;
-
-}init_GN;
-
 void Initialize_GN(struct init_GN_ *ptr_init_GN)//Group Normalization Init.
 {
 	int layers, num_ch, trim;
@@ -338,6 +287,13 @@ float ***Activation_Function(struct act_func_data_ *act_func_data)
 	return res;
 }
 
+float **make_2darray(int dim1,int dim2)
+{
+	float **array = (float **)malloc(dim1*sizeof(float*));
+	for (int i = 0; i< dim1; i++)
+		array[i] = (float *) malloc(dim2*sizeof(float));
+	return array;
+}
 float ***make_3darray(int channels,int dim)
 {
 	int dim1=channels, dim2=dim, dim3=dim;
@@ -398,7 +354,7 @@ int main(void) {
 		{
 			for (int k=0;k<dim;k++)
 			{
-				array[i][j][k] = i+j+k;
+				array[i][j][k] = rand()%20;
 				printf("%f\t", array[i][j][k]);//*(*(*(pA +i) + j) +k));
 			}
 			printf("\n");
@@ -406,21 +362,39 @@ int main(void) {
 		printf("\n");
 	}
 
+
 	///////////////////////////////////////////////////////
 	////////////////// TESTING SECTION ////////////////////
+	float ***dpool1;
+	dpool1 = make_3darray(channels,2);
+	for (int i=0;i<channels;i++)
+		for (int j=0;j<2;j++)
+			for (int k=0;k<2;k++)
+				dpool1[i][j][k] = (j*2+k*1);
 
-	struct maxpool_data_ *ptr_maxpool_data= &maxpool_data;
-	ptr_maxpool_data->image = array;
-	ptr_maxpool_data->channels=channels;
-	ptr_maxpool_data->dim=dim;
-	maxpool(ptr_maxpool_data);
-	float ***res = ptr_maxpool_data->output;
-	int o_dim = ptr_maxpool_data->o_dim;
+
+
+	struct maxpoolbackward_data_ *ptr_maxpoolbackward_data= &maxpoolbackward_data;
+	ptr_maxpoolbackward_data->dpool =dpool1;
+	ptr_maxpoolbackward_data->conv = array;
+	ptr_maxpoolbackward_data->channels =channels;
+	ptr_maxpoolbackward_data->dim=2;
+	maxpool_backward(ptr_maxpoolbackward_data);
+	float ***res = ptr_maxpoolbackward_data->output;
+	int o_dim = ptr_maxpoolbackward_data->o_dim;
 
 	for (int i=0;i<channels;i++)
+	{
 		for (int j=0;j<o_dim;j++)
+		{
 			for (int k=0;k<o_dim;k++)
-				//printf("%f\t", res[i][j][k]);//*(*(*(pA +i) + j) +k));
+			{
+				printf("%f\t", res[i][j][k]);//*(*(*(pA +i) + j) +k));
+			}
+			printf("\n");
+		}
+		printf("\n");
+	}
 
 	///////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////
