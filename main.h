@@ -14,6 +14,21 @@ float ****make_4darray(int num,int channels,int dim);
 float ***make_3darray(int channels,int dim);
 
 #endif /* MAIN_H_ */
+struct concat_crop_data_
+{
+	/*
+	 * Image: 3-dimensional array of type(channels, h, w)
+	 * Concat function: The images 1,2 will be concatenated with respect to their channels and the output image3 will
+	 * have doubled the channels of the inputs with same h,w dimensions
+	 * Crop: Cut to half the image1(input) with respect to the channels, so the results will be image2,3 with halfed
+	 * the channels in comparison with input. The input image will share equally its channels to the 2 outputs with same h,w.
+	 * ch_num: Its always referred to the input channel dimensions.
+	 * o_ch_num : represents the number of channels that output(s) have.
+	 */
+	int o_ch_num,ch_num,dim;
+	float ***image1,***image2,***image3;
+}concat_crop_data;
+
 struct maxpool_data_
 {
 	/*

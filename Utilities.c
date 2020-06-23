@@ -344,57 +344,36 @@ int main(void) {
 	int channels,code,dim;
 	code = 1;//sigmoid(approximation)
 	channels = 2;
-	dim = 4;
+	dim = 2;
 
-	float ***array;
-	array = make_3darray(channels,dim);
+	float ***image1;
+	image1 = make_3darray(channels,dim);
 	for (int i=0;i<channels;i++)
 	{
 		for (int j=0;j<dim;j++)
 		{
 			for (int k=0;k<dim;k++)
 			{
-				array[i][j][k] = rand()%20;
-				printf("%f\t", array[i][j][k]);//*(*(*(pA +i) + j) +k));
+				image1[i][j][k] = (i+1)*(j*2+k*1);
+				printf("%f\t", image1[i][j][k]);//*(*(*(pA +i) + j) +k));
 			}
 			printf("\n");
 		}
 		printf("\n");
 	}
-
 
 	///////////////////////////////////////////////////////
 	////////////////// TESTING SECTION ////////////////////
-	float ***dpool1;
-	dpool1 = make_3darray(channels,2);
+	/*
+	float ***image1;
+	image1 = make_3darray(channels,2);
 	for (int i=0;i<channels;i++)
 		for (int j=0;j<2;j++)
 			for (int k=0;k<2;k++)
-				dpool1[i][j][k] = (j*2+k*1);
+				image1[i][j][k] = (i+1)*(j*2+k*1);
+	*/
 
 
-
-	struct maxpoolbackward_data_ *ptr_maxpoolbackward_data= &maxpoolbackward_data;
-	ptr_maxpoolbackward_data->dpool =dpool1;
-	ptr_maxpoolbackward_data->conv = array;
-	ptr_maxpoolbackward_data->channels =channels;
-	ptr_maxpoolbackward_data->dim=2;
-	maxpool_backward(ptr_maxpoolbackward_data);
-	float ***res = ptr_maxpoolbackward_data->output;
-	int o_dim = ptr_maxpoolbackward_data->o_dim;
-
-	for (int i=0;i<channels;i++)
-	{
-		for (int j=0;j<o_dim;j++)
-		{
-			for (int k=0;k<o_dim;k++)
-			{
-				printf("%f\t", res[i][j][k]);//*(*(*(pA +i) + j) +k));
-			}
-			printf("\n");
-		}
-		printf("\n");
-	}
 
 	///////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////
