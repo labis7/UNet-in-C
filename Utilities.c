@@ -344,7 +344,7 @@ int main(void) {
 	int channels,code,dim;
 	code = 1;//sigmoid(approximation)
 	channels = 2;
-	dim = 2;
+	dim = 5;
 
 	float ***image1;
 	image1 = make_3darray(channels,dim);
@@ -354,13 +354,39 @@ int main(void) {
 		{
 			for (int k=0;k<dim;k++)
 			{
-				image1[i][j][k] = (i+1)*(j*2+k*1);
+				image1[i][j][k] = (i+1)*(j*2+k*1) +1;
 				printf("%f\t", image1[i][j][k]);//*(*(*(pA +i) + j) +k));
 			}
 			printf("\n");
 		}
 		printf("\n");
 	}
+	printf("\nFILTER:\n");
+	float ****filter ;
+	int count=1;
+	int f_num=4;
+	int f=3;
+	filter = make_4darray(f_num,channels,f);
+	float *bias= (float *)malloc(f_num*sizeof(float));
+	for (int i=0;i<f_num;i++)
+	{
+		for (int l=0; l<channels ; l++)
+		{
+			for (int j=0;j<f;j++)
+			{
+				for (int k=0;k<f;k++)
+				{
+					filter[i][l][j][k] = count;
+					count++;
+					printf("%f\t", filter[i][l][j][k]);//*(*(*(pA +i) + j) +k));
+				}
+				printf("\n");
+			}
+			printf("\n");
+		}
+		bias[i]=i;
+	}
+
 
 	///////////////////////////////////////////////////////
 	////////////////// TESTING SECTION ////////////////////
@@ -374,7 +400,35 @@ int main(void) {
 	*/
 
 
+	struct conv_data_ *ptr_conv_data = &conv_data;
+	ptr_conv_data->conv_in = image1;
+	ptr_conv_data->dim = 5;
+	ptr_conv_data->mode = 0;
+	ptr_conv_data->ch_num=2;
+	ptr_conv_data->f_dim=f;
+	ptr_conv_data->f_num=f_num;
 
+	ptr_conv_data->bias=bias;
+	ptr_conv_data->filter=filter;
+
+	conv(ptr_conv_data);
+	float ***res = ptr_conv_data->conv_out;
+	int o_dim=ptr_conv_data->o_dim;
+	printf("\nResult:\n");
+	for (int i=0;i<f_num;i++)
+	{
+		for (int j=0;j<o_dim;j++)
+		{
+			for (int k=0;k<o_dim;k++)
+			{
+				//image1[i][j][k] = (i+1)*(j*2+k*1) +1;
+				printf("%f\t", res[i][j][k]);//*(*(*(pA +i) + j) +k));
+			}
+			printf("\n");
+		}
+		printf("\n");
+	}
+	//conv(ptr_conv_data);
 	///////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////
 	printf("\nSuccess! - No Segmentation faults!");

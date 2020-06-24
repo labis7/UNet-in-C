@@ -14,6 +14,33 @@ float ****make_4darray(int num,int channels,int dim);
 float ***make_3darray(int channels,int dim);
 
 #endif /* MAIN_H_ */
+
+struct conv_data_
+{
+	/* -------------- Convolution ---------------
+	 *
+	 * conv_in: Image we went to apply convolution. shape: (channels, h, w)
+	 * ch_num: its the input channels of the filter == 2nd dimenions of the filter == 1st dimension of the input image
+	 * f_num: The number of filters(1st dim of the filter) which is the final number of channels that conv_out will have.
+	 * o_dim: 	According to mode: 1) 'Same': Means that the h,w will be the same for the conv_out. In order to accomplish such
+	 * a thing, we need to add a zero padding around the conv_in with p=1.((dim-3+2*p)/1 + 1) , s=1,f=3. 2) "Normal": Means that
+	 * the result will have the dim of a normal-basic convolution: (dim-3)/1 + 1 = o_dim
+	 *
+	 * ----------Convolution_Backward ------------
+	 *
+	 *
+	 *
+	 */
+	float ***conv_in, ***conv_out;
+	float ****filter,*bias;
+	int ch_num; // same as 2nd dimension of the filter
+	int f_num; // == result channel number
+	int dim; //Image dim, assume h==w
+	int o_dim;
+	int mode; //choose the padding between : same(1) and normal(0) convolution
+	int f_dim;// it can be used from transposed conv too, tr_conv use 2x2 filters
+}conv_data;
+
 struct concat_crop_data_
 {
 	/*
