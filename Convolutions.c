@@ -112,8 +112,90 @@ void conv(struct conv_data_ *ptr_conv_data)
 	ptr_conv_data->conv_out = conv_out;
 	ptr_conv_data->o_dim = o_dim;
 	//number of channels is known before func call,(o_ch)num == f_num)
+}
+
+void convTransp(struct conv_data_ *ptr_conv_data)
+{
+	float ***conv_in,***conv_in_t,***conv_out;
+	float ****filter_unrot,*bias;
+	int dim,f_num,ch_num,o_dim;
+	conv_in = ptr_conv_data->conv_in;
+	filter_unrot = ptr_conv_data->filter;
+	bias = ptr_conv_data->bias;
+	dim = ptr_conv_data->dim;
+	ch_num = ptr_conv_data->ch_num;
+	f_num = ptr_conv_data->f_num;
+	int s=1;
+	int f = ptr_conv_data->f_dim; // f=2
 
 
+
+	//Rotate 2*90degrees the filter matrix
+	float ****filter=make_4darray(f_num,ch_num,f);
+	for (int i=0; i<f_num; i++)//number of filters
+	{
+		for(int k=0; k<ch_num; k++)
+		{
+			//We know that the filter will always be 2x2 so...
+			filter[i][k][1][1]= filter_unrot[i][k][0][0];
+			filter[i][k][0][0]= filter_unrot[i][k][1][1];
+			filter[i][k][1][0]= filter_unrot[i][k][0][1];
+			filter[i][k][0][1]= filter_unrot[i][k][1][0];
+		}
+	}
+
+	//Now its to make the new conv_in where we are going to apply the convolution(basic-normal) with a 2x2 filter
+	o_dim = dim*2;
+	int dim_t = dim*2 + 1;
+	conv_in_t = make_3darray(ch_num, dim_t);
+
+	//Fill with zeros///
+	for (int i=0; i<ch_num; i++)
+		for(int x=0; x<dim_t; x++)
+			for(int y=0; y<dim_t; y++)
+				conv_in_t[i][x][y] = 0;
+	////////////////////
+	//Fill the appropriate slots with data(with respect to : zeroinsertion between data=1, pad=1 )
+	/*
+	 * MOre about how the above number occurred:
+	 * s is always 1, upsample kernerl f=2
+	 * zero insertions between pixels s_downsampled-1 = 2-1 =1
+	 * required padding in order to double my dimensions with the given data:
+	 * (i-1)*2 + k -2*p = output_size, where our padding is k - p -1 = 2-0-1=1(we assume p=0)
+	 */
+	for (int i=0; i<ch_num; i++)
+		for(int x=1; x<dim_t; x+=2)
+			for(int y=1; y<dim_t; y+=2)
+				conv_in_t[i][x][y] = conv_in[i][(int)(x/2)][(int)(y/2)];
+
+	// Convolution 'normal'-padding=0 ///
+	//o_dim = (dim_t -2)/1 +1;   OR   o_dim = dim*2
+	conv_out = make_3darray(f_num, o_dim); //number of filters will determine the number of out image channels, dim will be the same in this case.
+	int sum;
+	for (int i=0; i<f_num; i++)//number of filters
+	{
+		for(int x=0; x<o_dim; x++)
+		{
+			for(int y=0; y<o_dim; y++)
+			{
+				sum=0;
+				//seeking on the temp image sub array that we want to mult item wise and then add them for the (x,y) result
+				for(int j=0; j < ch_num ; j++)
+				{
+					for(int k=x; k<(x + f); k++)
+					{
+						for(int l =y; l<(y+f); l++)
+						{
+							sum += conv_in_t[j][k][l]*filter[i][j][k-x][l-y];
+						}
+					}
+				}
+				conv_out[i][x][y] = sum + bias[i];
+			}
+		}
+	}
+	ptr_conv_data->conv_out = conv_out;
+	ptr_conv_data->o_dim = o_dim;
 }
 
 

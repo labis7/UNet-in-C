@@ -365,7 +365,7 @@ int main(void) {
 	float ****filter ;
 	int count=1;
 	int f_num=4;
-	int f=3;
+	int f=2;
 	filter = make_4darray(f_num,channels,f);
 	float *bias= (float *)malloc(f_num*sizeof(float));
 	for (int i=0;i<f_num;i++)
@@ -411,23 +411,10 @@ int main(void) {
 	ptr_conv_data->bias=bias;
 	ptr_conv_data->filter=filter;
 
-	conv(ptr_conv_data);
+	convTransp(ptr_conv_data);
 	float ***res = ptr_conv_data->conv_out;
 	int o_dim=ptr_conv_data->o_dim;
-	printf("\nResult:\n");
-	for (int i=0;i<f_num;i++)
-	{
-		for (int j=0;j<o_dim;j++)
-		{
-			for (int k=0;k<o_dim;k++)
-			{
-				//image1[i][j][k] = (i+1)*(j*2+k*1) +1;
-				printf("%f\t", res[i][j][k]);//*(*(*(pA +i) + j) +k));
-			}
-			printf("\n");
-		}
-		printf("\n");
-	}
+
 	//conv(ptr_conv_data);
 	///////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////
