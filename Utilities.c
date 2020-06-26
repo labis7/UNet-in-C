@@ -308,6 +308,20 @@ float ***make_3darray(int channels,int dim)
 	}
 	return array;
 }
+uint32_t ***make_3darray_u(int channels,int dim)
+{
+	int dim1=channels, dim2=dim, dim3=dim;
+	int i,j;
+	uint32_t *** array = (uint32_t ***)malloc(dim1*sizeof(uint32_t**));
+
+	for (i = 0; i< dim1; i++)
+	{
+		array[i] = (uint32_t **) malloc(dim2*sizeof(uint32_t *));
+		for (j = 0; j < dim2; j++)
+			array[i][j] = (uint32_t *)malloc(dim3*sizeof(uint32_t));
+	}
+	return array;
+}
 float ****make_4darray(int num,int channels,int dim)
 {
 	int dim0=num, dim1=channels, dim2=dim, dim3=dim;
@@ -355,12 +369,13 @@ int main(void) {
 			for (int k=0;k<dim;k++)
 			{
 				image1[i][j][k] = (i+1)*(j*2+k*1) +1;
-				printf("%f\t", image1[i][j][k]);//*(*(*(pA +i) + j) +k));
+				//printf("%f\t", image1[i][j][k]);//*(*(*(pA +i) + j) +k));
 			}
-			printf("\n");
+			//printf("\n");
 		}
-		printf("\n");
+		//printf("\n");
 	}
+	/*
 	printf("\nFILTER:\n");
 	float ****filter ;
 	int count=1;
@@ -386,36 +401,58 @@ int main(void) {
 		}
 		bias[i]=i;
 	}
+	*/
+	/*
+		float ***image1;
+		image1 = make_3darray(channels,2);
+		for (int i=0;i<channels;i++)
+			for (int j=0;j<2;j++)
+				for (int k=0;k<2;k++)
+					image1[i][j][k] = (i+1)*(j*2+k*1);
+		*/
+		/*
+		float ***temp=make_3darray(2,2);
+		for (int i=0;i<2;i++)
+				for (int j=0;j<2;j++)
+					for (int k=0;k<2;k++)
+						temp[i][j][k] = (i+1)*(j*2+k*1) +1.33;
 
+		FILE *w_ptr = fopen("test.bin", "wb");
+		for (int i=0;i<2;i++)
+			for (int j=0;j<2;j++)
+				for (int k=0;k<2;k++)
+					fwrite(((uint32_t *)(&temp[i][j][k])), sizeof(uint32_t), 1, w_ptr); //buffer, size of each element, number of elements, file pointer
+		//printf("\n%d\n",sizeof(uint8_t));
+		fclose(w_ptr);
 
+		uint32_t *rbuffer;
+		FILE *ptr = fopen("test.bin","rb");
+		rbuffer = (uint32_t *)malloc(sizeof(int32_t));
+		float ***temp1=make_3darray(2,2);
+
+		printf("\nResult:\n");
+		for (int i=0;i<2;i++)
+		{
+				for (int j=0;j<2;j++)
+				{
+					for (int k=0;k<2;k++)
+					{
+						fread(rbuffer,sizeof(uint32_t),1,ptr);
+						temp1[i][j][k] = *((float *)rbuffer);
+						printf("%.2f\t",temp1[i][j][k]);
+					}
+					printf("\n");
+				}
+				printf("\n");
+		}
+		fclose(ptr);
+		*/
 	///////////////////////////////////////////////////////
 	////////////////// TESTING SECTION ////////////////////
-	/*
-	float ***image1;
-	image1 = make_3darray(channels,2);
-	for (int i=0;i<channels;i++)
-		for (int j=0;j<2;j++)
-			for (int k=0;k<2;k++)
-				image1[i][j][k] = (i+1)*(j*2+k*1);
-	*/
 
 
-	struct conv_data_ *ptr_conv_data = &conv_data;
-	ptr_conv_data->conv_in = image1;
-	ptr_conv_data->dim = 5;
-	ptr_conv_data->mode = 0;
-	ptr_conv_data->ch_num=2;
-	ptr_conv_data->f_dim=f;
-	ptr_conv_data->f_num=f_num;
 
-	ptr_conv_data->bias=bias;
-	ptr_conv_data->filter=filter;
 
-	convTransp(ptr_conv_data);
-	float ***res = ptr_conv_data->conv_out;
-	int o_dim=ptr_conv_data->o_dim;
-
-	//conv(ptr_conv_data);
 	///////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////
 	printf("\nSuccess! - No Segmentation faults!");

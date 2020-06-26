@@ -4,6 +4,9 @@
  *  Created on: Jun 20, 2020
  *      Author: labis
  */
+/////// INCLUDES ///////
+#include <stdint.h>
+////////////////////////
 
 #ifndef MAIN_H_
 #define MAIN_H_
