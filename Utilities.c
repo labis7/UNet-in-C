@@ -427,14 +427,15 @@ void load_params(struct params_ *params)
 	/////////////////
 	float *****filters = (float *****)malloc((layers*2*2-1)*sizeof(float ****));
 	float **bias = (float **)malloc((layers*2*2-1)*sizeof(float *));
-	float *****f_dc = (float *****)malloc((layers-1)*sizeof(float ****));
-	float **b_dc = (float **)malloc((layers-1)*sizeof(float *));
-	float **gamma = (float **)malloc((layers*2*2-1)*sizeof(float *));
-	float **beta = (float **)malloc((layers*2*2-1)*sizeof(float *));
+	float *****f_dc = (float *****)malloc((layers-2)*sizeof(float ****));//NO OUT layer
+	float **b_dc = (float **)malloc((layers-2)*sizeof(float *));
+	float **gamma = (float **)malloc((layers*2*2-2)*sizeof(float *));//no out layers
+	float **beta = (float **)malloc((layers*2*2-2)*sizeof(float *));
 
 	//init reading from file //
 
-	// FILTERS //
+	////////////////////////// FILTERS ////////////////////////////
+	///////////////////////////////////////////////////////////////
 	int dim=3;
 	int f_num,ch_num;
 	int sum=0;
@@ -504,10 +505,171 @@ void load_params(struct params_ *params)
 			pos = (i-1)*2; //pos == 18 (19 filters)
 			filters[pos]=f;
 		}
-
-
-
 	}
+
+	/////////////////// BIAS ///////////////////
+	////////////////////////////////////////////
+	sum=1;//already last layer out is counted, (just 1 scalar bias_out)
+	offset=0;
+	for (int i=1;i<=(layers-1); i++)//9 layers, last layer is precalculated
+		sum += calc_f_num(i)*2;
+
+	rbuffer = (uint32_t *)malloc(sum*sizeof(int32_t));
+	fread(rbuffer, sum*sizeof(uint32_t), 1, ptr);
+	pos=0;
+	offset=0;
+	for (int i=1;i<=(layers-1); i++) //NOT THE LAST LAYER!!!
+	{
+		f_num = calc_f_num(i);
+		ch_num = calc_ch_num(i,1);
+		float *b = (float *)malloc(f_num*sizeof(float));
+		for (int y=0; y<f_num; y++)
+		{
+			b[y] = *((float *)(rbuffer+offset));
+			offset++;
+		}
+		pos = (i-1)*2;
+		bias[pos]=b;
+
+		//f_num = calc_f_num(i);
+		ch_num = calc_ch_num(i,2);
+		b =  (float *)malloc(f_num*sizeof(float));
+		for (int y=0; y<f_num; y++)
+		{
+			b[y] = *((float *)(rbuffer+offset));
+			offset++;
+		}
+		pos += 1;
+		bias[pos]=b;
+	}
+	//last layer of bias
+	f_num = calc_f_num(10);
+	float *b = (float *)malloc(f_num*sizeof(float));
+	for (int y=0; y<f_num; y++)
+	{
+		b[y] = *((float *)(rbuffer+offset));
+		offset++;
+	}
+	bias[18]=b;
+
+	///////////////////////////// F_DC ///////////////////////////////
+	//////////////////////////////////////////////////////////////////
+
+	dim=2;
+	sum=0;
+	offset=0;
+	sum =((128*256) +(64*128)+(32*64)+(16*32))*2*2;
+	rbuffer = (uint32_t *)malloc(sum*sizeof(int32_t));
+	fread(rbuffer, sum*sizeof(uint32_t), 1, ptr);
+	pos=0;
+	for (int i=6;i<=(layers-1); i++)
+	{
+		f_num = calc_f_num(i);//same as filter 6_1
+		ch_num = calc_ch_num(i,1);//same as filter 6_1
+		float ****f = make_4darray(calc_f_num(i), calc_ch_num(i,1), 2);
+		for(int k=0; k<f_num; k++)
+			for(int j=0; j< ch_num; j++)
+				for(int x=0; x<dim; x++)
+					for (int y=0; y<dim; y++)
+					{
+						f[k][j][x][y] = *((float *)(rbuffer+offset));
+						offset++;
+					}
+		f_dc[pos]=f;
+		pos++;
+	}
+	///////////////////////////// B_DC ///////////////////////////////
+	//////////////////////////////////////////////////////////////////
+
+	sum=0;
+	offset=0;
+	sum = 128+64+32+16;
+	rbuffer = (uint32_t *)malloc(sum*sizeof(int32_t));
+	fread(rbuffer, sum*sizeof(uint32_t), 1, ptr);
+	pos=0;
+	for (int i=6;i<=(layers-1); i++)
+	{
+		f_num = calc_f_num(i);//same as filter 6_1
+		float *b = (float *)malloc(f_num*sizeof(float));
+		for (int y=0; y<f_num; y++)
+		{
+			b[y] = *((float *)(rbuffer+offset));
+			offset++;
+		}
+		b_dc[pos]=b;
+		pos++;
+	}
+	/////////////////// GAMMA ///////////////////
+	////////////////////////////////////////////
+	sum=0;//already last layer out is counted, (just 1 scalar bias_out)
+	offset=0;
+	for (int i=1;i<=(layers-1); i++)//9 layers
+		sum += ((int)(calc_f_num(i)/batch))*2;//default:batch=2
+
+	rbuffer = (uint32_t *)malloc(sum*sizeof(int32_t));
+	fread(rbuffer, sum*sizeof(uint32_t), 1, ptr);
+	pos=0;
+	offset=0;
+	for (int i=1;i<=(layers-1); i++) //NOT THE LAST LAYER!!!
+	{
+		f_num = (int)(calc_f_num(i)/batch);
+		float *ga = (float *)malloc(f_num*sizeof(float));
+		for (int y=0; y<f_num; y++)
+		{
+			ga[y] = *((float *)(rbuffer+offset));
+			offset++;
+		}
+		pos = (i-1)*2;
+		gamma[pos]=ga;
+
+
+		ga =  (float *)malloc(f_num*sizeof(float));
+		for (int y=0; y<f_num; y++)
+		{
+			ga[y] = *((float *)(rbuffer+offset));
+			offset++;
+		}
+		pos += 1;
+		gamma[pos]=ga;
+	}
+	/////////////////// BETA ///////////////////
+	////////////////////////////////////////////
+	sum=0;//already last layer out is counted, (just 1 scalar bias_out)
+	offset=0;
+	for (int i=1;i<=(layers-1); i++)//9 layers
+		sum += ((int)(calc_f_num(i)/batch))*2;//default:batch=2
+
+	rbuffer = (uint32_t *)malloc(sum*sizeof(int32_t));
+	fread(rbuffer, sum*sizeof(uint32_t), 1, ptr);
+	pos=0;
+	offset=0;
+	for (int i=1;i<=(layers-1); i++) //NOT THE LAST LAYER!!!
+	{
+		f_num = (int)(calc_f_num(i)/batch);
+		float *be = (float *)malloc(f_num*sizeof(float));
+		for (int y=0; y<f_num; y++)
+		{
+			be[y] = *((float *)(rbuffer+offset));
+			offset++;
+		}
+		pos = (i-1)*2;
+		beta[pos]=be;
+
+
+		be =  (float *)malloc(f_num*sizeof(float));
+		for (int y=0; y<f_num; y++)
+		{
+			be[y] = *((float *)(rbuffer+offset));
+			offset++;
+		}
+		pos += 1;
+		beta[pos]=be;
+	}
+	params->be=beta;
+	params->ga=gamma;
+	params->b_dc=b_dc;
+	params->f_dc = f_dc;
+	params->bias=bias;
 	params->filters=filters;
 	fclose(ptr);
 
@@ -608,91 +770,7 @@ int main(void) {
 	///////////////////////////////////////////////////////
 	////////////////// TESTING SECTION ////////////////////
 
-/*
-	int size=8;
-	uint32_t *rbuffer;
-	FILE *ptr = fopen("testfile.bin","rb");
-	rbuffer = (uint32_t *)malloc(size*sizeof(int32_t));
-	float ***temp1=make_3darray(2,2);
-	fread(rbuffer, size*sizeof(uint32_t), 1, ptr);
-	printf("\nResult:\n");
-	int c=0;
-	for (int i=0;i<2;i++)
-	{
-			for (int j=0;j<2;j++)
-			{
-				for (int k=0;k<2;k++)
-				{
-					temp1[i][j][k] = *((float *)(rbuffer+c));
-					c++;
-					printf("%.2f\t",temp1[i][j][k]);
-				}
-				printf("\n");
-			}
-			printf("\n");
-	}
-	fclose(ptr);
-*/
 
-	struct params_ *ptr_params = &params;
-	ptr_params->layers = 10;
-	ptr_params->gn_batch = 2;
-	load_params(ptr_params);
-	float *****filters = ptr_params->filters;
-	int layers =10;
-	int f_num,ch_num;
-	int pos=0;
-	int dim=3;
-
-	for (int i=1;i<=1; i++)
-	{
-		if(i!=10)
-		{
-
-			pos =(i-1)*2;
-			float ****f = filters[pos];
-			f_num = calc_f_num(i);
-			ch_num = calc_ch_num(i,1);
-			for(int k=0; k<f_num; k++)
-			{
-				for(int j=0; j< ch_num; j++)
-				{
-					for(int x=0; x<dim; x++)
-					{
-						for (int y=0; y<dim; y++)
-						{
-							printf("%.5f\t",f[k][j][x][y]);
-						}
-						printf("\n");
-					}
-					printf("\n");
-				}
-				printf("\n");
-			}
-			printf("\n\n\n\n\n\n\nfilter 2:\n\n\n\n\n\n");
-			pos =pos+1;
-			f = filters[pos];
-			f_num = calc_f_num(i);
-			ch_num = calc_ch_num(i,2);
-			for(int k=0; k<f_num; k++)
-			{
-				for(int j=0; j< ch_num; j++)
-				{
-					for(int x=0; x<dim; x++)
-					{
-						for (int y=0; y<dim; y++)
-						{
-							printf("%.2f\t",f[k][j][x][y]);
-						}
-						printf("\n");
-					}
-					printf("\n");
-				}
-				printf("\n");
-			}
-		}
-
-	}
 
 	///////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////
