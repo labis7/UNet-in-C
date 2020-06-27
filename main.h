@@ -44,6 +44,22 @@ struct conv_data_
 	int f_dim;// it can be used from transposed conv too, tr_conv use 2x2 filters
 }conv_data;
 
+struct params_
+{
+	/*
+	 * Filters: They made of all the filters for the forward step, including the final 1x1 conv. filters(out_F), These filters 4D dim
+	 * as follows: (num_f, num_in_ch, f_h, f_w) and these filters are saved sequencially in a Filters array with the type of(*****)
+	 * Bias: Thats the double pointer matric which keeps all the bias values of the network. We need 1-d array for the scalar values
+	 * of each bias so the final Bias matrix it is type of (**),so it can include all the different sizes of bias.
+	 * F_dc: This matrix contains the decoder upsampling transposed convolution filters.Its type is the same as Filters matrix.
+	 * gn_batch: the number of channels group we batches together and applied group normalization
+	 * b_dc,bias,ga,be : all these are tyoe of matrices of 1d-arrays. ga,be got //gn_batch the size of bias.
+	 */
+	int layers, num_f, gn_batch;
+	float *****filters,**bias, *****f_dc,**b_dc,**ga,**be;
+
+}params;
+
 struct concat_crop_data_
 {
 	/*

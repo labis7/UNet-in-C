@@ -349,12 +349,177 @@ float Random_Normal(int loc, float scale)
 	float v2 = ( (float)(rand()) + 1. )/( (float)(RAND_MAX) + 1. );//random gen
 	return ((cos(2*3.14*v2)*sqrt(-2.*log(v1)))*scale + loc);
 }
+
+int calc_f_num(int layer)
+{
+	//int f_num_init=16; //'always'
+	//*layer variable starts from 1
+	switch (layer)
+	{
+	    case 1:
+	      return 16;
+	    case 2:
+	      return 32;
+	    case 3:
+	    	return 64;
+	    case 4:
+	    	return 128;
+	    case 5:
+	    	return 256;
+	    case 6:
+	    	return 128;
+	    case 7:
+	    	return 64;
+	    case 8:
+	    	return 32;
+	    case 9:
+	    	return 16;
+	    case 10:
+	    	return 1;
+	    default:
+	    	return -1;
+	      // default statements
+	}
+
+
+
+}
+int calc_ch_num(int layer,int tuple)
+{
+	//int f_num_init=16; //'always'
+	//*layer,tuple variable starts from 1 , tuple ={1,2} its the 1st or second filter/image channel of the layer
+	switch (layer)
+	{
+	    case 1:
+	      return (1+(tuple-1)*15);//1 , 16
+	    case 2:
+	      return 16 +(tuple-1)*16; //16, 32
+	    case 3:
+	    	return 32 +(tuple-1)*32;//32, 64
+	    case 4:
+	    	return 64 + (tuple -1)*64; //64, 128
+	    case 5:
+	    	return 128 + (tuple-1)*128; //128, 256
+	    case 6:
+	    	return 256 -(tuple-1)*128; //256(after concat), 128
+	    case 7:
+	    	return 128 - (tuple-1)*64; //128, 64
+	    case 8:
+	    	return 64 - (tuple -1)*32; //64, 32
+	    case 9:
+	    	return 32 - (tuple -1)*16;//32, 16
+	    case 10:
+	    	return 16;
+	    default:
+	    	return -1;
+	      // default statements
+	}
+}
+
+
+void load_params(struct params_ *params)
+{
+	// Unpacking //
+	int batch =params->gn_batch; //default:2
+	int layers = params->layers; //default:10
+	//int f_num = params->num_f;
+
+	/////////////////
+	float *****filters = (float *****)malloc((layers*2*2-1)*sizeof(float ****));
+	float **bias = (float **)malloc((layers*2*2-1)*sizeof(float *));
+	float *****f_dc = (float *****)malloc((layers-1)*sizeof(float ****));
+	float **b_dc = (float **)malloc((layers-1)*sizeof(float *));
+	float **gamma = (float **)malloc((layers*2*2-1)*sizeof(float *));
+	float **beta = (float **)malloc((layers*2*2-1)*sizeof(float *));
+
+	//init reading from file //
+
+	// FILTERS //
+	int dim=3;
+	int f_num,ch_num;
+	int sum=0;
+	int offset=0;
+	for (int i=1;i<=layers; i++)
+	{
+		if(i!=10)
+		{
+			sum += calc_f_num(i)*calc_ch_num(i,1)*3*3;
+			sum += calc_f_num(i)*calc_ch_num(i,2)*3*3;
+		}
+		else
+		{
+			sum+=calc_f_num(i)*calc_ch_num(i,1)*1*1; //last layer: out_f
+		}
+	}
+	uint32_t *rbuffer;
+	FILE *ptr = fopen("testfile.bin","rb");
+	rbuffer = (uint32_t *)malloc(sum*sizeof(int32_t));
+	fread(rbuffer, sum*sizeof(uint32_t), 1, ptr);
+	int pos=0;
+	for (int i=1;i<=layers; i++)
+	{
+		if(i!=10)
+		{
+			f_num = calc_f_num(i);
+			ch_num = calc_ch_num(i,1);
+			float ****f = make_4darray(calc_f_num(i), calc_ch_num(i,1), 3);
+			for(int k=0; k<f_num; k++)
+				for(int j=0; j< ch_num; j++)
+					for(int x=0; x<dim; x++)
+						for (int y=0; y<dim; y++)
+						{
+							f[k][j][x][y] = *((float *)(rbuffer+offset));
+							offset++;
+						}
+			pos = (i-1)*2;
+			filters[pos]=f;
+
+			//f_num = calc_f_num(i);
+			ch_num = calc_ch_num(i,2);
+			f = make_4darray(f_num, ch_num, 3);
+			for(int k=0; k<f_num; k++)
+				for(int j=0; j< ch_num; j++)
+					for(int x=0; x<dim; x++)
+						for (int y=0; y<dim; y++)
+						{
+							f[k][j][x][y] = *((float *)(rbuffer+offset));
+							offset++;
+						}
+			pos += 1;
+			filters[pos]=f;
+		}
+		else//i == 10 --> last 1x1 conv
+		{
+			f_num = calc_f_num(i);
+			ch_num = calc_ch_num(i,1);
+			float ****f = make_4darray(f_num, ch_num, 1);
+			for(int k=0; k<f_num; k++)
+				for(int j=0; j< ch_num; j++)
+					for(int x=0; x<1; x++)
+						for (int y=0; y<1; y++)
+						{
+							f[k][j][x][y] = *((float *)(rbuffer+offset));
+							offset++;
+						}
+			pos = (i-1)*2; //pos == 18 (19 filters)
+			filters[pos]=f;
+		}
+
+
+
+	}
+	params->filters=filters;
+	fclose(ptr);
+
+}
+
 int main(void) {
 	time_t t;
 	srand((unsigned) time(&t));
 
 	puts("Main function init!");
 
+	/*
 	int channels,code,dim;
 	code = 1;//sigmoid(approximation)
 	channels = 2;
@@ -375,6 +540,7 @@ int main(void) {
 		}
 		//printf("\n");
 	}
+	*/
 	/*
 	printf("\nFILTER:\n");
 	float ****filter ;
@@ -424,34 +590,109 @@ int main(void) {
 					fwrite(((uint32_t *)(&temp[i][j][k])), sizeof(uint32_t), 1, w_ptr); //buffer, size of each element, number of elements, file pointer
 		//printf("\n%d\n",sizeof(uint8_t));
 		fclose(w_ptr);
+		*/
 
-		uint32_t *rbuffer;
-		FILE *ptr = fopen("test.bin","rb");
-		rbuffer = (uint32_t *)malloc(sizeof(int32_t));
-		float ***temp1=make_3darray(2,2);
 
-		printf("\nResult:\n");
-		for (int i=0;i<2;i++)
-		{
-				for (int j=0;j<2;j++)
+
+	// BLOCK READ !!!!!! //
+	/*
+	uint32_t *rbuffer;
+	FILE *ptr = fopen("test.bin","rb");
+	rbuffer = (uint32_t *)malloc(2*sizeof(int32_t));
+	fread(rbuffer,2*sizeof(uint32_t), 1, ptr);
+	float *test,*test1;
+	test=(float *)rbuffer;
+	test1 =(float *)(rbuffer+1);
+	printf("Results:\n%f %f",*test,*test1);
+	*/
+	///////////////////////////////////////////////////////
+	////////////////// TESTING SECTION ////////////////////
+
+/*
+	int size=8;
+	uint32_t *rbuffer;
+	FILE *ptr = fopen("testfile.bin","rb");
+	rbuffer = (uint32_t *)malloc(size*sizeof(int32_t));
+	float ***temp1=make_3darray(2,2);
+	fread(rbuffer, size*sizeof(uint32_t), 1, ptr);
+	printf("\nResult:\n");
+	int c=0;
+	for (int i=0;i<2;i++)
+	{
+			for (int j=0;j<2;j++)
+			{
+				for (int k=0;k<2;k++)
 				{
-					for (int k=0;k<2;k++)
+					temp1[i][j][k] = *((float *)(rbuffer+c));
+					c++;
+					printf("%.2f\t",temp1[i][j][k]);
+				}
+				printf("\n");
+			}
+			printf("\n");
+	}
+	fclose(ptr);
+*/
+
+	struct params_ *ptr_params = &params;
+	ptr_params->layers = 10;
+	ptr_params->gn_batch = 2;
+	load_params(ptr_params);
+	float *****filters = ptr_params->filters;
+	int layers =10;
+	int f_num,ch_num;
+	int pos=0;
+	int dim=3;
+
+	for (int i=1;i<=1; i++)
+	{
+		if(i!=10)
+		{
+
+			pos =(i-1)*2;
+			float ****f = filters[pos];
+			f_num = calc_f_num(i);
+			ch_num = calc_ch_num(i,1);
+			for(int k=0; k<f_num; k++)
+			{
+				for(int j=0; j< ch_num; j++)
+				{
+					for(int x=0; x<dim; x++)
 					{
-						fread(rbuffer,sizeof(uint32_t),1,ptr);
-						temp1[i][j][k] = *((float *)rbuffer);
-						printf("%.2f\t",temp1[i][j][k]);
+						for (int y=0; y<dim; y++)
+						{
+							printf("%.5f\t",f[k][j][x][y]);
+						}
+						printf("\n");
 					}
 					printf("\n");
 				}
 				printf("\n");
+			}
+			printf("\n\n\n\n\n\n\nfilter 2:\n\n\n\n\n\n");
+			pos =pos+1;
+			f = filters[pos];
+			f_num = calc_f_num(i);
+			ch_num = calc_ch_num(i,2);
+			for(int k=0; k<f_num; k++)
+			{
+				for(int j=0; j< ch_num; j++)
+				{
+					for(int x=0; x<dim; x++)
+					{
+						for (int y=0; y<dim; y++)
+						{
+							printf("%.2f\t",f[k][j][x][y]);
+						}
+						printf("\n");
+					}
+					printf("\n");
+				}
+				printf("\n");
+			}
 		}
-		fclose(ptr);
-		*/
-	///////////////////////////////////////////////////////
-	////////////////// TESTING SECTION ////////////////////
 
-
-
+	}
 
 	///////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////
