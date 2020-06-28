@@ -15,6 +15,7 @@
 
 void conv(struct conv_data_ *ptr_conv_data)
 {
+	printf("\ndone");
 	//f_dim = 3, stride = 1.
 	float ***conv_in,***conv_out;
 	float ****filter,*bias;

@@ -44,6 +44,24 @@ struct conv_data_
 	int f_dim;// it can be used from transposed conv too, tr_conv use 2x2 filters
 }conv_data;
 
+
+struct gn_data_
+{
+
+	/*
+	 * image: shape:(ch_num,dim,dim)
+	 * gamma,beta: shape:(ch_num//2) 1-d, they hold important variables that normalize the output of convolutions in batches
+	 * dim: dimensions of the image
+	 * ch_num:number of channels of the image
+	 */
+	float ***image;
+	float *gamma,*beta;
+	int batch, dim, ch_num;
+
+	float ***out; //Normalize output, same size as image
+
+}gn_data;
+
 struct params_
 {
 	/*
