@@ -2,7 +2,132 @@
 #include <stdlib.h>
 #include <math.h>
 #include <main.h>
+#include <dirent.h>
+#include <string.h>
 
+void load_images(struct images_data_ *images_data)
+{
+
+	char **image_names;
+	int im_num = images_data->im_num;
+	//create char space forr image names
+	image_names = (char **)malloc(im_num*sizeof(char *));
+	for (int i = 0; i<im_num ; i++)
+		image_names[i]=(char *)malloc(50*sizeof(char));
+
+	DIR *dir;
+	struct dirent *ent;
+	if ((dir = opendir ("/home/labis/eclipse-workspace/Utilities/images")) != NULL) {
+	  /* print all the files and directories within directory */
+		int i=0;
+		while ((ent = readdir (dir)) != NULL)
+		{
+	    //printf ("%s\n", ent->d_name);
+			if(ent->d_type == 8)//shows that its a string name
+			{
+				strcpy(image_names[i], ent->d_name);
+				i++;
+			}
+		}
+	  closedir (dir);
+	}
+	else
+	{
+	  /* could not open directory */
+	  perror ("");
+	  return exit(1);
+	}
+	//"/home/labis/data/salt/testfile.bin","rb"
+    char line[20], path_name[200];
+    int width, height, maxval;
+    float ***image;
+    FILE *fd;
+
+    for(int im=0; im< im_num; im++)
+    {
+    	sprintf(path_name,"/home/labis/eclipse-workspace/Utilities/images/%s", image_names[im]);
+    	fd = fopen(path_name,"rb");
+		if (fd == NULL) {
+			printf("Could not open image file!\n");
+			exit(1);
+		}
+	    fgets(line, sizeof(line), fd);
+	    if (strcmp(line, "P5\n") != 0) {
+	        printf("Image is not in PGM(P5) format!\n");
+	        fclose(fd);
+	        exit(1);
+	    }
+
+	    // skip comment
+	    //fgets(line, sizeof(line), fd);
+
+	    // read header
+	    if (fscanf(fd, "%d %d\n", &width, &height) != 2) {
+	        printf("Invalid header(width & height area)\n");
+	        fclose(fd);
+	        exit(1);
+	    }
+	    if (fscanf(fd, "%d\n", &maxval) != 1) {
+	        printf("Invalid header(maxval area)\n");
+	        fclose(fd);
+	        exit(1);
+	    }
+	    if (maxval == 65535) {
+
+	    	int ch_num=1,dim=height;
+			image = make_3darray(ch_num, dim);
+			uint16_t *rbuffer = (uint16_t *)malloc(dim*dim*sizeof(int16_t));
+			if (fread(rbuffer, sizeof(uint16_t), (width * height), fd) != width * height) {
+				printf("Error reading pixel values!\n");
+				fclose(fd);
+				exit(1);
+			}
+			fclose(fd);
+			int offset=0;
+			for(int i = 0; i<ch_num; i++ )
+			{
+				for (int x=0; x<height; x++)
+				{
+					for (int y=0; y<width; y++)
+					{
+						image[i][x][y] = (float)((*(rbuffer+offset))/maxval);//normalized
+						offset++;
+						//printf("%.3f\t", image[i][x][y]);
+					}
+					//printf("\n");
+				}
+				//printf("\n");
+			}
+	    }
+	    else //means its 8-bit
+	    {
+	    	int ch_num=1,dim=height;
+			image = make_3darray(ch_num, dim);
+			uint8_t *rbuffer = (uint8_t *)malloc(dim*dim*sizeof(int8_t));
+			if (fread(rbuffer, sizeof(uint8_t), (width * height), fd) != width * height) {
+				printf("Error reading pixel values!\n");
+				fclose(fd);
+				exit(1);
+			}
+			fclose(fd);
+			int offset=0;
+			for(int i = 0; i<ch_num; i++ )
+			{
+				for (int x=0; x<height; x++)
+				{
+					for (int y=0; y<width; y++)
+					{
+						image[i][x][y] = ((float)*(rbuffer+offset))/maxval;//normalized
+						offset++;
+						//printf("%.3f\t", image[i][x][y]);
+					}
+					//printf("\n");
+				}
+				//printf("\n");
+			}
+	    }
+    }
+}
 
 void load_params(struct params_ *params)
 {

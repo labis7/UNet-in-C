@@ -45,6 +45,15 @@ struct conv_data_
 }conv_data;
 
 
+struct images_data_
+{
+	/*
+	 *images: 4-dimensional matrix , 1st dim keeps the overall number of input images, and then
+	 * we have the basic type (ch_num,dim,dim)
+	 */
+	float ****images;
+	int im_num, dim;
+}images_data;
 struct gn_data_
 {
 
