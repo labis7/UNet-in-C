@@ -226,6 +226,83 @@ void Initialize_Parameters(struct init_param_ *ptr_init_param)
 	ptr_init_param->f_dc = f_dc;
 	ptr_init_param->b_dc = b_dc;
 }
+void GN(struct gn_data_ *gn_data)
+{
+	int eps=1e-5;
+	float *beta,*gamma;
+	float ivar, sqrtvar, var, mu;
+	float ***xmu, ***xhat, ***gammax, ***out;
+	int batch, ch_num, dim;
+	batch=gn_data->batch;
+	ch_num=gn_data->ch_num;
+	dim=gn_data->dim;
+	gamma=gn_data->gamma;
+	beta=gn_data->beta;
+	float ***image = gn_data->image;
+	// make empty arrays that will need later
+	xmu = make_3darray(batch,dim);//we need only size of batch in order to calculate the partial out on each loop
+	xhat= make_3darray(batch,dim);
+	gammax= make_3darray(batch,dim);
+	out = make_3darray(ch_num,dim);
+	/////////////////////////////////////////
+	for (int i=0; i<ch_num; i+=batch)
+	{
+		//each loop is interested on i->i+batch channels,
+		//with the data(gamma,beta) be the elements (int)(i//batch)
+
+		//step1:calculate mean(scalar)
+		mu=0;
+		for(int k=i; k<(i+batch); k++)
+			for(int x=0; x<dim; x++)
+				for(int y=0; y<dim; y++)
+					mu += image[k][x][y];
+		mu = (float)(mu/(dim*dim*batch));
+
+		//step2:subtract mean vector of every training example
+		for(int k=i; k<(i+batch); k++)
+			for(int x=0; x<dim; x++)
+				for(int y=0; y<dim; y++)
+					xmu[k-i][x][y] = image[k][x][y] - mu;
+
+		//step3: following the lower branch - calculation denominator
+		//step4: calculate variance
+		var=0;
+		for(int k=0; k<batch; k++)
+			for(int x=0; x<dim; x++)
+				for(int y=0; y<dim; y++)
+					var+=pow(xmu[k][x][y],2);
+		var = (float)(var/(batch*dim*dim));
+
+		//step5: add eps for numerical stability, then sqrt
+		sqrtvar = sqrt((var+eps));
+		//step6: invert sqrtvar
+		ivar = (float)(1/sqrtvar);
+
+		//step7: execute normalization
+		for(int k=0; k<batch; k++)
+			for(int x=0; x<dim; x++)
+				for(int y=0; y<dim; y++)
+					xhat[k][x][y] = xmu[k][x][y] * ivar;
+
+
+		//step8: Nor the two transformation steps
+		int pos =(int)(i/batch);
+		float gamma_t=gamma[pos];
+		for(int k=0; k<batch; k++)
+			for(int x=0; x<dim; x++)
+				for(int y=0; y<dim; y++)
+					gammax[k][x][y]=gamma_t*xhat[k][x][y];
+		//step9: output
+		float beta_t = beta[(int)(i/batch)];
+		for(int k=i; k<(i+batch); k++)
+			for(int x=0; x<dim; x++)
+				for(int y=0; y<dim; y++)
+					out[k][x][y]= gammax[k-i][x][y] + beta_t;
+	}
+	gn_data->out = out;
+	//step5: add eps for numerical stability, then sqrt
+
+}
 
 float ***Activation_Function(struct act_func_data_ *act_func_data)
 {
@@ -514,6 +591,16 @@ int main(void) {
 	///////////////////////////////////////////////////////
 	////////////////// TESTING SECTION ////////////////////
 
+	struct images_data_ *ptr_images_data = &images_data;
+	//load images/labels//
+	//////////////////////
+	struct params_ *ptr_params = &params;
+	// load pre-trained parameters (filters-bias-GN)//
+	//////////////////////////////////////////////////
+
+	//PREDICT
+	predict(ptr_images_data, ptr_params);
+	//#TODO:future update will be able to choose the limit of predicted images of the struct(1 more variable that will give that info)
 
 	///////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////
