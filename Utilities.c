@@ -364,6 +364,9 @@ float ***Activation_Function(struct act_func_data_ *act_func_data)
 	return res;
 }
 
+
+
+
 float **make_2darray(int dim1,int dim2)
 {
 	float **array = (float **)malloc(dim1*sizeof(float*));
