@@ -6,6 +6,18 @@
  */
 /////// INCLUDES ///////
 #include <stdint.h>
+float Dice_Coef(float ***logs, float ***target,int dim);
+void concat();
+void convTransp();
+void maxpool();
+void Activation_Function();
+void conv();
+int calc_f_num();
+void GN();
+void load_params();
+void load_images();
+void load_labels();
+void predict();
 ////////////////////////
 
 #ifndef MAIN_H_
@@ -143,7 +155,7 @@ struct act_func_data_
 	 * Dim: We assume that we have a square image so the height == width == dim
 	 */
 	int code, channels, dim;
-	float ***dA, ***Z;
+	float ***res, ***Z;
 
 }act_func_data;
 

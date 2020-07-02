@@ -11,22 +11,24 @@ void load_images(struct images_data_ *images_data)
 	char **image_names;
 	int im_num = images_data->im_num;
 	int dim = images_data->dim;
-	//create char space forr image names
+	//create char space for image names
 	image_names = (char **)malloc(im_num*sizeof(char *));
 	for (int i = 0; i<im_num ; i++)
 		image_names[i]=(char *)malloc(50*sizeof(char));
 
 	DIR *dir;
 	struct dirent *ent;
-	if ((dir = opendir ("/home/labis/eclipse-workspace/Utilities/images")) != NULL) {
+	if ((dir = opendir ("/home/labis/eclipse-workspace/Utilities/images_resized")) != NULL) {
+		printf("\nLoading Images . . .");
 	  /* print all the files and directories within directory */
 		int i=0;
 		while ((ent = readdir (dir)) != NULL)
 		{
-	    //printf ("%s\n", ent->d_name);
+			//printf ("\n%s , type: %d\n", ent->d_name, ent->d_type);
 			if(ent->d_type == 8)//shows that its a string name
 			{
 				strcpy(image_names[i], ent->d_name);
+				printf("\n%s\n",image_names[i]);
 				i++;
 			}
 		}
@@ -35,7 +37,7 @@ void load_images(struct images_data_ *images_data)
 	else
 	{
 	  /* could not open directory */
-	  perror ("");
+	  perror ("Couldnt Open Directory(Check path!)");
 	  return exit(1);
 	}
 	//"/home/labis/data/salt/testfile.bin","rb"
@@ -47,7 +49,7 @@ void load_images(struct images_data_ *images_data)
     image = make_4darray(im_num, ch_num, dim);
     for(int im=0; im< im_num; im++)
     {
-    	sprintf(path_name,"/home/labis/eclipse-workspace/Utilities/images/%s", image_names[im]);
+    	sprintf(path_name,"/home/labis/eclipse-workspace/Utilities/images_resized/%s", image_names[im]);
     	fd = fopen(path_name,"rb");
 		if (fd == NULL) {
 			printf("Could not open image file!\n");
@@ -91,7 +93,7 @@ void load_images(struct images_data_ *images_data)
 				{
 					for (int y=0; y<width; y++)
 					{
-						image[i][0][x][y] = (float)((*(rbuffer+offset))/maxval);//normalized
+						image[im][0][x][y] = (float)((*(rbuffer+offset))/maxval);//normalized
 						offset++;
 						//printf("%.3f\t", image[i][x][y]);
 					}
@@ -117,7 +119,7 @@ void load_images(struct images_data_ *images_data)
 				{
 					for (int y=0; y<width; y++)
 					{
-						image[i][0][x][y] = ((float)*(rbuffer+offset))/maxval;//normalized
+						image[im][0][x][y] = ((float)*(rbuffer+offset))/maxval;//normalized
 						offset++;
 						//printf("%.3f\t", image[i][x][y]);
 					}
@@ -128,6 +130,8 @@ void load_images(struct images_data_ *images_data)
 	    }
     }
     images_data->images = image;
+    printf("Done!\n");
+
 }
 
 void load_labels(struct images_data_ *images_data)
@@ -143,7 +147,8 @@ void load_labels(struct images_data_ *images_data)
 
 	DIR *dir;
 	struct dirent *ent;
-	if ((dir = opendir ("/home/labis/eclipse-workspace/Utilities/labels")) != NULL) {
+	if ((dir = opendir ("/home/labis/eclipse-workspace/Utilities/labels_resized")) != NULL) {
+		printf("Loading Labels . . .");
 	  /* print all the files and directories within directory */
 		int i=0;
 		while ((ent = readdir (dir)) != NULL)
@@ -160,7 +165,7 @@ void load_labels(struct images_data_ *images_data)
 	else
 	{
 	  /* could not open directory */
-	  perror ("");
+	  perror ("Coudnt open directory(Check path!)");
 	  return exit(1);
 	}
 	//"/home/labis/data/salt/testfile.bin","rb"
@@ -172,7 +177,7 @@ void load_labels(struct images_data_ *images_data)
     label = make_4darray(im_num, ch_num, dim);
     for(int im=0; im< im_num; im++)
     {
-    	sprintf(path_name,"/home/labis/eclipse-workspace/Utilities/labels/%s", label_names[im]);
+    	sprintf(path_name,"/home/labis/eclipse-workspace/Utilities/labels_resized/%s", label_names[im]);
     	fd = fopen(path_name,"rb");
 		if (fd == NULL) {
 			printf("Could not open image file!\n");
@@ -216,7 +221,7 @@ void load_labels(struct images_data_ *images_data)
 				{
 					for (int y=0; y<width; y++)
 					{
-						label[i][0][x][y] = (float)((*(rbuffer+offset))/maxval);//normalized
+						label[im][0][x][y] = (float)((*(rbuffer+offset))/maxval);//normalized
 						offset++;
 						//printf("%.3f\t", image[i][x][y]);
 					}
@@ -242,7 +247,7 @@ void load_labels(struct images_data_ *images_data)
 				{
 					for (int y=0; y<width; y++)
 					{
-						label[i][0][x][y] = ((float)*(rbuffer+offset))/maxval;//normalized
+						label[im][0][x][y] = ((float)*(rbuffer+offset))/maxval;//normalized
 						offset++;
 						//printf("%.3f\t", image[i][x][y]);
 					}
@@ -253,6 +258,7 @@ void load_labels(struct images_data_ *images_data)
 	    }
     }
     images_data->labels = label;
+    printf("Done!\n");
 }
 
 void load_params(struct params_ *params)
@@ -291,7 +297,13 @@ void load_params(struct params_ *params)
 		}
 	}
 	uint32_t *rbuffer;
-	FILE *ptr = fopen("/home/labis/data/salt/testfile.bin","rb");
+	FILE *ptr = fopen("/home/labis/data/salt/weights_encrypted.bin","rb");
+	if(ptr == NULL)
+	{
+		printf("Couldnt load directory!\nExiting . . . ");
+		exit(1);
+	}
+	printf("Loading Parameters . . .");
 	rbuffer = (uint32_t *)malloc(sum*sizeof(int32_t));
 	fread(rbuffer, sum*sizeof(uint32_t), 1, ptr);
 	int pos=0;
@@ -510,5 +522,6 @@ void load_params(struct params_ *params)
 	params->bias=bias;
 	params->filters=filters;
 	fclose(ptr);
+	printf("Done!\n");
 
 }

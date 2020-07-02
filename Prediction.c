@@ -4,13 +4,13 @@
 #include <main.h>
 
 
-void predict(struct images_data_ *images_data,struct params_ *params)
+void predict(struct images_data_ *images_data,struct params_ *params, int predict_num)
 {
 	//choose image for prediction(it can be a list saved in the struct)
 	float ****images=images_data->images;
-	float ***image = images[0];//1st image is selected
+	float ***image = images[predict_num];//1st image is selected
 	float ****labels=images_data->labels;
-	float ***label = labels[0];
+	float ***label = labels[predict_num];
 	int dim = images_data->dim; // same across the whole data
 	///////// Laod Parameters  //////////
 	float *****filters = params->filters;
@@ -20,8 +20,8 @@ void predict(struct images_data_ *images_data,struct params_ *params)
 	int gn_batch = params->gn_batch;
 	float **gamma = params->ga;
 	float **beta = params->be;
-	int layers =params->layers;
-	int f_num_init = params->num_f;
+	//int layers =params->layers;
+	//int f_num_init = params->num_f;
 	//////////////////////////////////////
 
 	int o_dim;
@@ -46,7 +46,7 @@ void predict(struct images_data_ *images_data,struct params_ *params)
 		ptr_conv_data->ch_num = ch_num;
 		ptr_conv_data->dim = dim;
 		ptr_conv_data->f_dim =3;
-		ptr_conv_data->f_num = f_num_init; //that will be the output channels
+		ptr_conv_data->f_num = calc_f_num(curr_layer); //that will be the output channels
 		ptr_conv_data->mode = 1; // padding = 'same'
 		ptr_conv_data->conv_in = image;
 		ptr_conv_data->filter = filters[(curr_layer-1)*2];//2*9 + 1 filters
@@ -76,9 +76,9 @@ void predict(struct images_data_ *images_data,struct params_ *params)
 		ptr_act_func_data->dim=dim;
 		ptr_act_func_data->code=3; //code for relu==3
 
-		conv_out = Activation_function(ptr_act_func_data);
 
-
+		Activation_Function(ptr_act_func_data);
+		conv_out = ptr_act_func_data->res;
 		//2nd convolution
 		//input: (16,dim,dim), filter (16,16,3,3), output: (16,dim,dim)
 		//conv_block()
@@ -115,9 +115,12 @@ void predict(struct images_data_ *images_data,struct params_ *params)
 		ptr_act_func_data->dim=dim;
 		ptr_act_func_data->code=3; //code for relu==3
 
-		conv_out = Activation_function(ptr_act_func_data);
+
+
+		Activation_Function(ptr_act_func_data);
+		conv_out = ptr_act_func_data->res;
 		///////////////////////////////////////////////////////////////////////////////////////
-		conv_arr[curr_layer -1] = conv_out
+		conv_arr[curr_layer -1] = conv_out;
 		//////////// maxpool /////////
 		if(curr_layer != 5)
 		{
@@ -185,7 +188,8 @@ void predict(struct images_data_ *images_data,struct params_ *params)
 		ptr_act_func_data->dim=dim;
 		ptr_act_func_data->code=3; //code for relu==3
 
-		conv_out = Activation_function(ptr_act_func_data);
+		Activation_Function(ptr_act_func_data);
+		conv_out = ptr_act_func_data->res;
 
 
 		//2nd convolution
@@ -210,7 +214,8 @@ void predict(struct images_data_ *images_data,struct params_ *params)
 		ptr_act_func_data->dim=dim;
 		ptr_act_func_data->code=3; //code for relu==3
 
-		conv_out = Activation_function(ptr_act_func_data);
+		Activation_Function(ptr_act_func_data);
+		conv_out = ptr_act_func_data->res;
 	}
 
 
@@ -237,25 +242,10 @@ void predict(struct images_data_ *images_data,struct params_ *params)
 	ptr_act_func_data->dim=dim;
 	ptr_act_func_data->code=1; //code for relu==3
 
-	conv_out = Activation_function(ptr_act_func_data);
+	Activation_Function(ptr_act_func_data);
+	conv_out = ptr_act_func_data->res;
 
 
-	for (int i=0;i<ch_num;i++)
-	{
-		for (int j=0;j<dim;j++)
-		{
-			for (int k=0;k<dim;k++)
-			{
-				printf("%f\t", conv_out[i][j][k]);//*(*(*(pA +i) + j) +k));
-			}
-			printf("\n");
-		}
-		printf("\n");
-	}
-
-}
-
-void conv_block()
-{
-
+	float accuracy = Dice_Coef(conv_out, label,dim);
+	printf("\n\nAccuracy: %.2f \% \n\n", (accuracy*100));
 }

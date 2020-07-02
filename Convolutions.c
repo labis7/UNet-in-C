@@ -49,7 +49,7 @@ void conv(struct conv_data_ *ptr_conv_data)
 					conv_in_t[i][y][(dim_t-1)-x] = 0;
 				}
 			}
-			//fill the empty center space with conv_in--> then the result wiill be the conv_in padded(conv_in_t)
+			//fill the empty center space with conv_in--> then the result will be the conv_in padded(conv_in_t)
 			for(int x=pad; x<(dim_t-pad); x++)
 				for(int y=pad; y<(dim_t-pad); y++)
 					conv_in_t[i][x][y] = conv_in[i][x-pad][y-pad];
@@ -125,7 +125,7 @@ void convTransp(struct conv_data_ *ptr_conv_data)
 	dim = ptr_conv_data->dim;
 	ch_num = ptr_conv_data->ch_num;
 	f_num = ptr_conv_data->f_num;
-	int s=1;
+	//int s=1;
 	int f = ptr_conv_data->f_dim; // f=2
 
 

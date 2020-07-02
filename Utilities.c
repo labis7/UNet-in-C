@@ -304,7 +304,7 @@ void GN(struct gn_data_ *gn_data)
 
 }
 
-float ***Activation_Function(struct act_func_data_ *act_func_data)
+void Activation_Function(struct act_func_data_ *act_func_data)
 {
 	float ***Z;
 	int code, channels, dim;
@@ -325,7 +325,7 @@ float ***Activation_Function(struct act_func_data_ *act_func_data)
 	else if(code == 2)//Sigmoid backpropagation function
 	{
 		float ***dA;
-		dA =act_func_data->dA;
+		dA =act_func_data->res;
 		for (int i=0; i<channels; i++)
 			for (int j=0; j<dim; j++)
 				for (int k=0; k<dim; k++)
@@ -337,33 +337,70 @@ float ***Activation_Function(struct act_func_data_ *act_func_data)
 	}
 	else if(code == 3) //RELU activation function
 	{
-		for (int i=0; i<channels; i++)
+		int z =0;
+		for (z=0; z<channels; z++)
+		{
 			for (int j=0; j<dim; j++)
+			{
 				for (int k=0; k<dim; k++)
 				{
-					if(Z[i][j][k] <= 0)
-						res[i][j][k] = 0;
+					if(Z[z][j][k] <= 0)
+						res[z][j][k] = 0;
 					else
-						res[i][j][k] = Z[i][j][k];
+						res[z][j][k] = Z[z][j][k];
 				}
+			}
+		}
 	}
 	else //Relu backpropagation function
 	{
 		float ***dA;
-		dA = act_func_data->dA;
-		for (int i=0; i<channels; i++)
+		dA = act_func_data->res;
+		int z=0;
+		for (z=0; z<channels; z++)
+		{
 			for (int j=0; j<dim; j++)
+			{
 				for (int k=0; k<dim; k++)
 				{
-					if(Z[i][j][k] <= 0)
-						res[i][j][k] = 0;
+					if(Z[z][j][k] <= 0)
+						res[z][j][k] = 0;
 					else
-						res[i][j][k] = dA[i][j][k];
+						res[z][j][k] = dA[z][j][k];
 				}
+			}
+		}
 	}
-	return res;
+	act_func_data->res = res;
+	//return res;
 }
 
+float Dice_Coef(float ***logs, float ***target,int dim)
+{
+
+	int mylen = dim*dim;
+	//building numerator(logs*target)  //#TODO :many optimization available
+	float ***numer = make_3darray(1,dim);
+	float ***denom = make_3darray(1,dim);
+	for(int i=0; i<1; i++)
+		for(int x=0; x<dim; x++)
+			for(int y=0; y<dim; y++)
+			{
+				numer[i][x][y]=(logs[i][x][y])*(target[i][x][y]);
+				denom[i][x][y] = logs[i][x][y] + target[i][x][y];
+			}
+	float sum_num=0,sum_den=0;
+	for(int i=0; i<1; i++)
+		for(int x=0; x<dim; x++)
+			for(int y=0; y<dim; y++)
+			{
+				sum_num += numer[i][x][y];
+				sum_den += denom[i][x][y];
+			}
+	float loss = 1 - (float)((2*sum_num)/(sum_den));
+	return (float)exp(-loss);
+
+}
 
 
 
@@ -527,82 +564,28 @@ int main(void) {
 		//printf("\n");
 	}
 	*/
-	/*
-	printf("\nFILTER:\n");
-	float ****filter ;
-	int count=1;
-	int f_num=4;
-	int f=2;
-	filter = make_4darray(f_num,channels,f);
-	float *bias= (float *)malloc(f_num*sizeof(float));
-	for (int i=0;i<f_num;i++)
-	{
-		for (int l=0; l<channels ; l++)
-		{
-			for (int j=0;j<f;j++)
-			{
-				for (int k=0;k<f;k++)
-				{
-					filter[i][l][j][k] = count;
-					count++;
-					printf("%f\t", filter[i][l][j][k]);//*(*(*(pA +i) + j) +k));
-				}
-				printf("\n");
-			}
-			printf("\n");
-		}
-		bias[i]=i;
-	}
-	*/
-	/*
-		float ***image1;
-		image1 = make_3darray(channels,2);
-		for (int i=0;i<channels;i++)
-			for (int j=0;j<2;j++)
-				for (int k=0;k<2;k++)
-					image1[i][j][k] = (i+1)*(j*2+k*1);
-		*/
-		/*
-		float ***temp=make_3darray(2,2);
-		for (int i=0;i<2;i++)
-				for (int j=0;j<2;j++)
-					for (int k=0;k<2;k++)
-						temp[i][j][k] = (i+1)*(j*2+k*1) +1.33;
-
-		FILE *w_ptr = fopen("test.bin", "wb");
-		for (int i=0;i<2;i++)
-			for (int j=0;j<2;j++)
-				for (int k=0;k<2;k++)
-					fwrite(((uint32_t *)(&temp[i][j][k])), sizeof(uint32_t), 1, w_ptr); //buffer, size of each element, number of elements, file pointer
-		//printf("\n%d\n",sizeof(uint8_t));
-		fclose(w_ptr);
-		*/
-
-
-
-	// BLOCK READ !!!!!! //
-	/*
-	uint32_t *rbuffer;
-	FILE *ptr = fopen("testfile.bin","rb");
-	rbuffer = (uint32_t *)malloc(2*sizeof(int32_t));
-	fread(rbuffer,2*sizeof(uint32_t), 1, ptr);
-	float *test,*test1;
-	test=(float *)rbuffer;
-	test1 =(float *)(rbuffer+1);
-	printf("Results:\n%f %f",*test,*test1);
-	*/
 	///////////////////////////////////////////////////////
 	////////////////// TESTING SECTION ////////////////////
 
 	struct images_data_ *ptr_images_data = &images_data;
 	//load images/labels//
+	ptr_images_data->dim = 64;
+	ptr_images_data->im_num = 4;
+	load_images(ptr_images_data);
+	load_labels(ptr_images_data);
 	//////////////////////
 	struct params_ *ptr_params = &params;
 	// load pre-trained parameters (filters-bias-GN)//
+	ptr_params->gn_batch = 2;//number of group normalization batch
+	ptr_params->layers = 10; //number of total layers
+	ptr_params->num_f =16;   //init number of filters
+	//ptr_params->num_f = 16; it will be calculated itself
+	load_params(ptr_params);
 	//////////////////////////////////////////////////
 
+
 	//PREDICT
-	predict(ptr_images_data, ptr_params);
+	predict(ptr_images_data, ptr_params, 0);//last variable is prediction image number,we choose the img we want
 	//#TODO:future update will be able to choose the limit of predicted images of the struct(1 more variable that will give that info)
 
 	///////////////////////////////////////////////////////
