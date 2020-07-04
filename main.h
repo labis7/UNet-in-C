@@ -18,6 +18,7 @@ void load_params();
 void load_images();
 void load_labels();
 void predict();
+void normalize_custom();
 ////////////////////////
 
 #ifndef MAIN_H_
@@ -167,6 +168,20 @@ struct GP_arrays_ //General purpose arrays
 	float ****dim4;
 	float *****dim5;
 }GP_arrays;
+
+struct norm_data_
+{
+	/*
+	 * image,res: type of (ch_num,dim,dim). Its the last layer output before sigmoid
+	 * for code==0(where a simple +-inf protection kicks in) and also the output for the latest result after sigmoid where
+	 * code ==1 that is built to push some values to their possible target value.
+	 * (e.g. if value is ~0.9 , we assume its target is 1.0 to we change it to 1)
+	 * **IMPORTANT!**: normalize_custom function keeps the pointer of the sent image and make changes on it.
+	 */
+	float ***image,***res;
+	int code,dim; //ch_num==1
+}norm_data;
+
 
 struct init_param_
 {

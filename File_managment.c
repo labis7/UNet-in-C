@@ -18,7 +18,7 @@ void load_images(struct images_data_ *images_data)
 
 	DIR *dir;
 	struct dirent *ent;
-	if ((dir = opendir ("/home/labis/eclipse-workspace/Utilities/images_resized")) != NULL) {
+	if ((dir = opendir ("/home/labis/eclipse-workspace/Utilities/images")) != NULL) {
 		printf("\nLoading Images . . .");
 	  /* print all the files and directories within directory */
 		int i=0;
@@ -49,7 +49,7 @@ void load_images(struct images_data_ *images_data)
     image = make_4darray(im_num, ch_num, dim);
     for(int im=0; im< im_num; im++)
     {
-    	sprintf(path_name,"/home/labis/eclipse-workspace/Utilities/images_resized/%s", image_names[im]);
+    	sprintf(path_name,"/home/labis/eclipse-workspace/Utilities/images/%s", image_names[im]);
     	fd = fopen(path_name,"rb");
 		if (fd == NULL) {
 			printf("Could not open image file!\n");
@@ -147,7 +147,7 @@ void load_labels(struct images_data_ *images_data)
 
 	DIR *dir;
 	struct dirent *ent;
-	if ((dir = opendir ("/home/labis/eclipse-workspace/Utilities/labels_resized")) != NULL) {
+	if ((dir = opendir ("/home/labis/eclipse-workspace/Utilities/labels")) != NULL) {
 		printf("Loading Labels . . .");
 	  /* print all the files and directories within directory */
 		int i=0;
@@ -156,7 +156,9 @@ void load_labels(struct images_data_ *images_data)
 	    //printf ("%s\n", ent->d_name);
 			if(ent->d_type == 8)//shows that its a string name
 			{
+
 				strcpy(label_names[i], ent->d_name);
+				//printf("\n%s\n",label_names[i]);
 				i++;
 			}
 		}
@@ -177,7 +179,7 @@ void load_labels(struct images_data_ *images_data)
     label = make_4darray(im_num, ch_num, dim);
     for(int im=0; im< im_num; im++)
     {
-    	sprintf(path_name,"/home/labis/eclipse-workspace/Utilities/labels_resized/%s", label_names[im]);
+    	sprintf(path_name,"/home/labis/eclipse-workspace/Utilities/labels/%s", label_names[im]);
     	fd = fopen(path_name,"rb");
 		if (fd == NULL) {
 			printf("Could not open image file!\n");
@@ -297,7 +299,7 @@ void load_params(struct params_ *params)
 		}
 	}
 	uint32_t *rbuffer;
-	FILE *ptr = fopen("/home/labis/data/salt/weights_encrypted.bin","rb");
+	FILE *ptr = fopen("/home/labis/eclipse-workspace/Utilities/weights_encrypted.bin","rb");
 	if(ptr == NULL)
 	{
 		printf("Couldnt load directory!\nExiting . . . ");

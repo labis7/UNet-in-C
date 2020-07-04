@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <main.h>
+#include <time.h>
 
 ////////////// Function Naming init. ////////////////
 
@@ -467,6 +468,40 @@ float Random_Normal(int loc, float scale)
 	return ((cos(2*3.14*v2)*sqrt(-2.*log(v1)))*scale + loc);
 }
 
+void normalize_custom(struct norm_data_ *norm_data)
+{
+	float ***image = norm_data->image;
+	int dim = norm_data->dim;
+	//float ***res = make_3darray(1,dim,dim);
+	int code = norm_data->code;
+	if(code == 0) //normalize possible inf edges
+	{
+		for (int i=0; i<dim; i++)
+		{
+			for(int j=0; j<dim; j++)
+			{
+				if(image[0][i][j]>4)
+					image[0][i][j]=4;
+				else if(image[0][i][j]<-4)
+					image[0][i][j]=-4;
+			}
+		}
+	}
+	else
+	{
+		for (int i=0; i<dim; i++)
+		{
+			for(int j=0; j<dim; j++)
+			{
+				if(image[0][i][j]>0.65)
+					image[0][i][j]=1;
+				else if(image[0][i][j]<0.35)
+					image[0][i][j]=0;
+			}
+		}
+	}
+}
+
 int calc_f_num(int layer)
 {
 	//int f_num_init=16; //'always'
@@ -583,11 +618,17 @@ int main(void) {
 	load_params(ptr_params);
 	//////////////////////////////////////////////////
 
+	clock_t begin = clock();
+
+	/* here, do your time-consuming job */
+
 
 	//PREDICT
 	predict(ptr_images_data, ptr_params, 0);//last variable is prediction image number,we choose the img we want
 	//#TODO:future update will be able to choose the limit of predicted images of the struct(1 more variable that will give that info)
-
+	clock_t end = clock();
+	double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+	printf("\nTime needed: %.2f sec",time_spent);
 	///////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////
 	printf("\nSuccess! - No Segmentation faults!");

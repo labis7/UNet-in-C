@@ -49,13 +49,15 @@ void conv(struct conv_data_ *ptr_conv_data)
 					conv_in_t[i][y][(dim_t-1)-x] = 0;
 				}
 			}
+
 			//fill the empty center space with conv_in--> then the result will be the conv_in padded(conv_in_t)
 			for(int x=pad; x<(dim_t-pad); x++)
 				for(int y=pad; y<(dim_t-pad); y++)
 					conv_in_t[i][x][y] = conv_in[i][x-pad][y-pad];
 		}
+
 		// Now we can start the convolution
-		int sum;
+		float sum;
 		for (int i=0; i<f_num; i++)//number of filters
 		{
 			for(int x=0; x<o_dim; x++)
@@ -79,11 +81,12 @@ void conv(struct conv_data_ *ptr_conv_data)
 			}
 		}
 	}
+
 	else//mode = pad = 0 = 'normal'
 	{
 		o_dim = ((dim - f)/s) +1 ;
 		conv_out = make_3darray(f_num, o_dim); //number of filters will determine the number of out image channels, dim will be the same in this case.
-		int sum;
+		float sum;
 		for (int i=0; i<f_num; i++)//number of filters
 		{
 			for(int x=0; x<o_dim; x++)
@@ -111,6 +114,7 @@ void conv(struct conv_data_ *ptr_conv_data)
 
 	ptr_conv_data->conv_out = conv_out;
 	ptr_conv_data->o_dim = o_dim;
+
 	//number of channels is known before func call,(o_ch)num == f_num)
 }
 
@@ -171,7 +175,7 @@ void convTransp(struct conv_data_ *ptr_conv_data)
 	// Convolution 'normal'-padding=0 ///
 	//o_dim = (dim_t -2)/1 +1;   OR   o_dim = dim*2
 	conv_out = make_3darray(f_num, o_dim); //number of filters will determine the number of out image channels, dim will be the same in this case.
-	int sum;
+	float sum;
 	for (int i=0; i<f_num; i++)//number of filters
 	{
 		for(int x=0; x<o_dim; x++)

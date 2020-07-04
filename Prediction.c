@@ -58,6 +58,7 @@ void predict(struct images_data_ *images_data,struct params_ *params, int predic
 		dim = ptr_conv_data->o_dim;
 		ch_num = ptr_conv_data->f_num;
 
+
 		//GN
 		ptr_gn_data->batch = gn_batch;
 		ptr_gn_data->ch_num = ch_num;
@@ -119,6 +120,7 @@ void predict(struct images_data_ *images_data,struct params_ *params, int predic
 
 		Activation_Function(ptr_act_func_data);
 		conv_out = ptr_act_func_data->res;
+
 		///////////////////////////////////////////////////////////////////////////////////////
 		conv_arr[curr_layer -1] = conv_out;
 		//////////// maxpool /////////
@@ -132,6 +134,7 @@ void predict(struct images_data_ *images_data,struct params_ *params, int predic
 			image=ptr_maxpool_data->output;
 		}
 	}
+
 
 	////////////////  Transposed convolution  //////////////////////////
 	//conv_out is the input image
@@ -153,6 +156,7 @@ void predict(struct images_data_ *images_data,struct params_ *params, int predic
 		conv_out = ptr_conv_data->conv_out;
 		ch_num = ptr_conv_data->f_num;
 
+
 		//Now its time for concatination with respect to channels
 		ptr_concat_crop_data->image1 = conv_arr[9-curr_layer];
 		ptr_concat_crop_data->image2 = conv_out;
@@ -163,6 +167,8 @@ void predict(struct images_data_ *images_data,struct params_ *params, int predic
 
 		ch_num = ptr_concat_crop_data->o_ch_num;
 		conv_out = ptr_concat_crop_data->image3;
+
+
 
 		// 2 convolutions(without Group Normalization#TODO)
 
@@ -181,6 +187,17 @@ void predict(struct images_data_ *images_data,struct params_ *params, int predic
 		dim = ptr_conv_data->o_dim;
 		ch_num = ptr_conv_data->f_num;
 
+		//GN
+		ptr_gn_data->batch = gn_batch;
+		ptr_gn_data->ch_num = ch_num;
+		ptr_gn_data->dim = dim;
+		ptr_gn_data->gamma=gamma[(curr_layer-1)*2];//2*9
+		ptr_gn_data->beta= beta[(curr_layer-1)*2]; //2*9
+		ptr_gn_data->image = conv_out;
+
+		GN(ptr_gn_data);
+
+		conv_out = ptr_gn_data->out;
 
 		//Relu
 		ptr_act_func_data->Z = conv_out;
@@ -208,6 +225,18 @@ void predict(struct images_data_ *images_data,struct params_ *params, int predic
 		dim = ptr_conv_data->o_dim;
 		ch_num = ptr_conv_data->f_num;
 
+		//GN
+		ptr_gn_data->batch = gn_batch;
+		ptr_gn_data->ch_num = ch_num;
+		ptr_gn_data->dim = dim;
+		ptr_gn_data->gamma=gamma[(curr_layer-1)*2+1];//2*9
+		ptr_gn_data->beta= beta[(curr_layer-1)*2+1]; //2*9
+		ptr_gn_data->image = conv_out;
+
+		GN(ptr_gn_data);
+
+		conv_out = ptr_gn_data->out;
+
 		//Relu
 		ptr_act_func_data->Z = conv_out;
 		ptr_act_func_data->channels=ch_num;
@@ -216,6 +245,7 @@ void predict(struct images_data_ *images_data,struct params_ *params, int predic
 
 		Activation_Function(ptr_act_func_data);
 		conv_out = ptr_act_func_data->res;
+
 	}
 
 
@@ -236,16 +266,31 @@ void predict(struct images_data_ *images_data,struct params_ *params, int predic
 	dim = ptr_conv_data->o_dim;
 	ch_num = ptr_conv_data->f_num;
 
+	///Normalization for possible inf edges
+	struct norm_data_ *ptr_norm_data=&norm_data;
+	ptr_norm_data->image=conv_out;
+	ptr_norm_data->dim=dim;
+	ptr_norm_data->code = 0;
+
+	normalize_custom(ptr_norm_data);//it changes the conv_out ifself
+
 	//Relu
 	ptr_act_func_data->Z = conv_out;
 	ptr_act_func_data->channels=ch_num;
 	ptr_act_func_data->dim=dim;
-	ptr_act_func_data->code=1; //code for relu==3
+	ptr_act_func_data->code=1; //code for sigmoid(==1)
 
 	Activation_Function(ptr_act_func_data);
 	conv_out = ptr_act_func_data->res;
 
 
+	// fix some values that didnt reach their target value
+	ptr_norm_data->image=conv_out;
+	ptr_norm_data->dim=dim;
+	ptr_norm_data->code = 1;
+
+	normalize_custom(ptr_norm_data);//it changes the conv_out ifself
+
 	float accuracy = Dice_Coef(conv_out, label,dim);
-	printf("\n\nAccuracy: %.2f \% \n\n", (accuracy*100));
+	printf("\n\nAccuracy: %.2f % \n\n", (accuracy*100));
 }
