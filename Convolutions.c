@@ -244,8 +244,8 @@ void crop2half(struct concat_crop_data_ *ptr_concat_crop_data)
 void concat(struct concat_crop_data_ *ptr_concat_crop_data)
 {
 	float ***image1, ***image2, ***image3;
-	image1=ptr_concat_crop_data->image1;
-	image2=ptr_concat_crop_data->image2;
+	image2=ptr_concat_crop_data->image1; // UPDATED AND MATCHES TO KERAS CONCAT
+	image1=ptr_concat_crop_data->image2;
 	int dim = ptr_concat_crop_data->dim;// dimensions for both image1,2 (which is the same)
 	int ch_num = ptr_concat_crop_data->ch_num;
 	int o_ch_num = ch_num*2;

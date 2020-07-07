@@ -451,6 +451,7 @@ void load_params(struct params_ *params)
 		b_dc[pos]=b;
 		pos++;
 	}
+	/*
 	/////////////////// GAMMA ///////////////////
 	////////////////////////////////////////////
 	sum=0;//already last layer out is counted, (just 1 scalar bias_out)
@@ -519,6 +520,7 @@ void load_params(struct params_ *params)
 	}
 	params->be=beta;
 	params->ga=gamma;
+	*/
 	params->b_dc=b_dc;
 	params->f_dc = f_dc;
 	params->bias=bias;

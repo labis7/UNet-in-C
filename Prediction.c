@@ -17,9 +17,9 @@ void predict(struct images_data_ *images_data,struct params_ *params, int predic
 	float **bias = params->bias;
 	float *****f_dc = params->f_dc;
 	float **b_dc = params->b_dc;
-	int gn_batch = params->gn_batch;
-	float **gamma = params->ga;
-	float **beta = params->be;
+	//int gn_batch = params->gn_batch;
+	//float **gamma = params->ga;
+	//float **beta = params->be;
 	//int layers =params->layers;
 	//int f_num_init = params->num_f;
 	//////////////////////////////////////
@@ -27,7 +27,7 @@ void predict(struct images_data_ *images_data,struct params_ *params, int predic
 	int o_dim;
 	int ch_num=1;//init
 	struct conv_data_ *ptr_conv_data = &conv_data;
-	struct gn_data_ *ptr_gn_data = &gn_data;
+	//struct gn_data_ *ptr_gn_data = &gn_data;
 	struct act_func_data_ *ptr_act_func_data = &act_func_data;
 	struct maxpool_data_ *ptr_maxpool_data = &maxpool_data;
 	struct concat_crop_data_ *ptr_concat_crop_data =&concat_crop_data;
@@ -58,7 +58,7 @@ void predict(struct images_data_ *images_data,struct params_ *params, int predic
 		dim = ptr_conv_data->o_dim;
 		ch_num = ptr_conv_data->f_num;
 
-
+		/*
 		//GN
 		ptr_gn_data->batch = gn_batch;
 		ptr_gn_data->ch_num = ch_num;
@@ -70,6 +70,7 @@ void predict(struct images_data_ *images_data,struct params_ *params, int predic
 		GN(ptr_gn_data);
 
 		conv_out = ptr_gn_data->out;
+		*/
 
 		//Relu
 		ptr_act_func_data->Z = conv_out;
@@ -98,6 +99,7 @@ void predict(struct images_data_ *images_data,struct params_ *params, int predic
 		dim = ptr_conv_data->o_dim;
 		ch_num = ptr_conv_data->f_num;
 
+		/*
 		//GN
 		ptr_gn_data->batch = gn_batch;
 		ptr_gn_data->ch_num = ch_num;
@@ -109,7 +111,7 @@ void predict(struct images_data_ *images_data,struct params_ *params, int predic
 		GN(ptr_gn_data);
 
 		conv_out = ptr_gn_data->out;
-
+		*/
 		//Relu
 		ptr_act_func_data->Z = conv_out;
 		ptr_act_func_data->channels=ch_num;
@@ -187,6 +189,7 @@ void predict(struct images_data_ *images_data,struct params_ *params, int predic
 		dim = ptr_conv_data->o_dim;
 		ch_num = ptr_conv_data->f_num;
 
+		/*
 		//GN
 		ptr_gn_data->batch = gn_batch;
 		ptr_gn_data->ch_num = ch_num;
@@ -198,6 +201,7 @@ void predict(struct images_data_ *images_data,struct params_ *params, int predic
 		GN(ptr_gn_data);
 
 		conv_out = ptr_gn_data->out;
+		*/
 
 		//Relu
 		ptr_act_func_data->Z = conv_out;
@@ -225,6 +229,7 @@ void predict(struct images_data_ *images_data,struct params_ *params, int predic
 		dim = ptr_conv_data->o_dim;
 		ch_num = ptr_conv_data->f_num;
 
+		/*
 		//GN
 		ptr_gn_data->batch = gn_batch;
 		ptr_gn_data->ch_num = ch_num;
@@ -236,6 +241,7 @@ void predict(struct images_data_ *images_data,struct params_ *params, int predic
 		GN(ptr_gn_data);
 
 		conv_out = ptr_gn_data->out;
+		*/
 
 		//Relu
 		ptr_act_func_data->Z = conv_out;
@@ -268,11 +274,11 @@ void predict(struct images_data_ *images_data,struct params_ *params, int predic
 
 	///Normalization for possible inf edges
 	struct norm_data_ *ptr_norm_data=&norm_data;
-	ptr_norm_data->image=conv_out;
-	ptr_norm_data->dim=dim;
-	ptr_norm_data->code = 0;
+	//ptr_norm_data->image=conv_out;
+	//ptr_norm_data->dim=dim;
+	//ptr_norm_data->code = 0;
 
-	normalize_custom(ptr_norm_data);//it changes the conv_out ifself
+	//normalize_custom(ptr_norm_data);//it changes the conv_out ifself
 
 	//Relu
 	ptr_act_func_data->Z = conv_out;
