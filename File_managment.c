@@ -22,13 +22,14 @@ void load_images(struct images_data_ *images_data)
 		printf("\nLoading Images . . .");
 	  /* print all the files and directories within directory */
 		int i=0;
+		int count=0;
 		while ((ent = readdir (dir)) != NULL)
 		{
 			//printf ("\n%s , type: %d\n", ent->d_name, ent->d_type);
 			if(ent->d_type == 8)//shows that its a string name
 			{
 				strcpy(image_names[i], ent->d_name);
-				printf("\n%s\n",image_names[i]);
+				printf("\n%d) %s\n",count++,image_names[i]);
 				i++;
 			}
 		}

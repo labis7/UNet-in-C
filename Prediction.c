@@ -4,8 +4,19 @@
 #include <main.h>
 
 
-void predict(struct images_data_ *images_data,struct params_ *params, int predict_num)
+void predict(struct images_data_ *images_data,struct params_ *params)
 {
+
+	///////////////////////// PRE-LOAD Data to Buffers /////////////////////////////
+
+	////////////////////////////////////////////////////////////////////////////////
+
+	printf("Choose an Image(number 0-%d) for prediction: ",(images_data->im_num -1));
+	int predict_num;
+	scanf("%d", &predict_num);
+
+	printf("\n");
+
 	//choose image for prediction(it can be a list saved in the struct)
 	float ****images=images_data->images;
 	float ***image = images[predict_num];//1st image is selected

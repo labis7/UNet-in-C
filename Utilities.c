@@ -624,7 +624,7 @@ int main(void) {
 
 
 	//PREDICT
-	predict(ptr_images_data, ptr_params, 0);//last variable is prediction image number,we choose the img we want
+	predict(ptr_images_data, ptr_params);//last variable is prediction image number,we choose the img we want
 	//#TODO:future update will be able to choose the limit of predicted images of the struct(1 more variable that will give that info)
 	clock_t end = clock();
 	double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
