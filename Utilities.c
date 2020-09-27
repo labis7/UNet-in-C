@@ -123,9 +123,9 @@ void Initialize_Parameters(struct init_param_ *ptr_init_param)
 				for (int z=0;z<3;z++)
 					for(int w=0;w<3;w++)
 					{
-						f1[x][y][z][w] = 0.005;//Random_Normal(loc, trim);
+						f1[x][y][z][w] = Random_Normal(loc, trim);
 					}
-			b1[x] = 0;// Random_Normal(loc, trim);
+			b1[x] =  Random_Normal(loc, trim);
 		}
 
 		/*
@@ -143,9 +143,9 @@ void Initialize_Parameters(struct init_param_ *ptr_init_param)
 				for (int z=0;z<3;z++)
 					for(int w=0;w<3;w++)
 					{
-						f2[x][y][z][w] = 0.005;//Random_Normal(loc, trim);
+						f2[x][y][z][w] = Random_Normal(loc, trim);
 					}
-			b2[x] = 0;//Random_Normal(loc, trim);
+			b2[x] = Random_Normal(loc, trim);
 		}
 		filters[2*i] = f1;
 		filters[2*i +1] = f2;
@@ -169,16 +169,16 @@ void Initialize_Parameters(struct init_param_ *ptr_init_param)
 				for (int z=0;z<3;z++)
 				{
 					for(int w=0;w<3;w++)
-						f1[x][y][z][w] = 0.005;//Random_Normal(loc, trim);
+						f1[x][y][z][w] = Random_Normal(loc, trim);
 				}
 				for (int z=0;z<2;z++)
 				{
 					for(int w=0;w<2;w++)
-						fdc[x][y][z][w] =0.005;// Random_Normal(loc, trim);
+						fdc[x][y][z][w] = Random_Normal(loc, trim);
 				}
 			}
-			bdc[x] = 0;// Random_Normal(loc, trim);
-			b1[x] = 0;//Random_Normal(loc, trim);
+			bdc[x] =  Random_Normal(loc, trim);
+			b1[x] = Random_Normal(loc, trim);
 		}
 
 		ch_in = num_f ;
@@ -191,9 +191,9 @@ void Initialize_Parameters(struct init_param_ *ptr_init_param)
 				for (int z=0;z<3;z++)
 					for(int w=0;w<3;w++)
 					{
-						f2[x][y][z][w] = 0.005;// Random_Normal(loc, trim);
+						f2[x][y][z][w] = Random_Normal(loc, trim);
 					}
-			b2[x] = 0;// Random_Normal(loc, trim);
+			b2[x] =  Random_Normal(loc, trim);
 		}
 
 		filters[last_pos*2] = f1;
@@ -201,7 +201,7 @@ void Initialize_Parameters(struct init_param_ *ptr_init_param)
 		bias[last_pos*2] = b1;
 		bias[last_pos*2 + 1] = b2;
 		f_dc[i-1] = fdc;
-		b_dc[i-1] = bdc;
+		b_dc[i] = bdc;
 		last_pos++;
 	}
 	printf("\nlast_pos:%d",last_pos);
@@ -215,9 +215,9 @@ void Initialize_Parameters(struct init_param_ *ptr_init_param)
 			for (int z=0;z<1;z++)
 				for(int w=0;w<1;w++)
 				{
-					out_f[x][y][z][w] = 0.001;//Random_Normal(loc, trim);
+					out_f[x][y][z][w] = Random_Normal(loc, trim);
 				}
-		out_b[x] = 0;// Random_Normal(loc, trim);
+		out_b[x] =  Random_Normal(loc, trim);
 	}
 	filters[last_pos*2] = out_f;
 	bias[last_pos*2] = out_b;
@@ -605,27 +605,9 @@ int main(void) {
 	struct images_data_ *ptr_images_data = &images_data;
 	//load images/labels//
 	ptr_images_data->dim = 64;
-	ptr_images_data->im_num = 1;
-	//load_images(ptr_images_data);
-	//load_labels(ptr_images_data);
-	int ch_num=1;
-	int dim=64;
-	float ***img = make_3darray(ch_num,dim);
-	float ****imagez=(float ****)malloc(sizeof(float ***));
-	for (int i=0;i<ch_num; i++)
-		for (int j=0;j<dim;j++)
-			for (int k=0;k<dim;k++)
-				img[i][j][k]= ((i+1)*(j*2+k*1)*1.3 +i);
-	imagez[0] =img ;
-	ptr_images_data->images=imagez;
-
-
-
-	struct init_param_ *ptr_init_param=&init_param;
-	ptr_init_param->layers=5;
-	ptr_init_param->num_f=16;
-	ptr_init_param->trim=0.01;
-	Initialize_Parameters(ptr_init_param);
+	ptr_images_data->im_num = 4;
+	load_images(ptr_images_data);
+	load_labels(ptr_images_data);
 	//////////////////////
 	struct params_ *ptr_params = &params;
 	// load pre-trained parameters (filters-bias-GN)//
@@ -633,11 +615,7 @@ int main(void) {
 	ptr_params->layers = 10; //number of total layers
 	ptr_params->num_f =16;   //init number of filters
 	//ptr_params->num_f = 16; it will be calculated itself
-	ptr_params->filters = ptr_init_param->filters;
-	ptr_params->bias=ptr_init_param->bias;
-	ptr_params->f_dc =ptr_init_param->f_dc;
-	ptr_params->b_dc=ptr_init_param->b_dc;
-	//load_params(ptr_params);
+	load_params(ptr_params);
 	//////////////////////////////////////////////////
 
 	clock_t begin = clock();
