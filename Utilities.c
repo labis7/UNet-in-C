@@ -18,6 +18,9 @@
 
 ////////////////////////////////////////////////////
 
+
+
+// Training - only //
 void Initialize_GN(struct init_GN_ *ptr_init_GN)//Group Normalization Init.
 {
 	int layers, num_ch, trim;
@@ -94,7 +97,7 @@ void Initialize_GN(struct init_GN_ *ptr_init_GN)//Group Normalization Init.
 
 }
 
-
+/// Training - Only ///
 void Initialize_Parameters(struct init_param_ *ptr_init_param)
 {
 	int layers = ptr_init_param->layers;//number of layers(just the encoder-downsampling number)
@@ -227,6 +230,7 @@ void Initialize_Parameters(struct init_param_ *ptr_init_param)
 	ptr_init_param->f_dc = f_dc;
 	ptr_init_param->b_dc = b_dc;
 }
+
 void GN(struct gn_data_ *gn_data)
 {
 	int eps=1e-5;
@@ -315,7 +319,7 @@ void Activation_Function(struct act_func_data_ *act_func_data)
 	dim = act_func_data->dim;
 
 	float ***res = make_3darray(channels, dim);
-	//Approximation of Sigmoid,  f(x) = x / (1 + abs(x))
+	//Approximation of Sigmoid,  f(x) = x / (1 + abs(x)), --> faster
 	if(code == 1)
 	{
 		for (int i=0; i<channels; i++)
@@ -323,7 +327,7 @@ void Activation_Function(struct act_func_data_ *act_func_data)
 				for (int k=0; k<dim; k++)
 					res[i][j][k] = (1/(1 + exp(- Z[i][j][k]))); //Thats the original sigmoid!
 	}
-	else if(code == 2)//Sigmoid backpropagation function
+	else if(code == 2)//Sigmoid backpropagation function -- Training - Only
 	{
 		float ***dA;
 		dA =act_func_data->res;
@@ -336,7 +340,7 @@ void Activation_Function(struct act_func_data_ *act_func_data)
 				for (int k=0; k<dim; k++)
 					res[i][j][k] = (dA[i][j][k])*(res[i][j][k])*(1 - res[i][j][k]);
 	}
-	else if(code == 3) //RELU activation function
+	else if(code == 3) //ReLu activation function
 	{
 		int z =0;
 		for (z=0; z<channels; z++)
@@ -353,7 +357,7 @@ void Activation_Function(struct act_func_data_ *act_func_data)
 			}
 		}
 	}
-	else //Relu backpropagation function
+	else //Relu backpropagation function   -- TRaining - ONly
 	{
 		float ***dA;
 		dA = act_func_data->res;
@@ -376,6 +380,8 @@ void Activation_Function(struct act_func_data_ *act_func_data)
 	//return res;
 }
 
+
+// Loss Function
 float Dice_Coef(float ***logs, float ***target,int dim)
 {
 
@@ -404,7 +410,7 @@ float Dice_Coef(float ***logs, float ***target,int dim)
 }
 
 
-
+// 2D ARRAY space creation  Given resolution
 float **make_2darray(int dim1,int dim2)
 {
 	float **array = (float **)malloc(dim1*sizeof(float*));
@@ -412,6 +418,7 @@ float **make_2darray(int dim1,int dim2)
 		array[i] = (float *) malloc(dim2*sizeof(float));
 	return array;
 }
+// 3D ARRAY space creation  Given resolution and channels
 float ***make_3darray(int channels,int dim)
 {
 	int dim1=channels, dim2=dim, dim3=dim;
@@ -440,6 +447,8 @@ uint32_t ***make_3darray_u(int channels,int dim)
 	}
 	return array;
 }
+
+// 4D ARRAY space creation  Given resolution,channels and filter number
 float ****make_4darray(int num,int channels,int dim)
 {
 	int dim0=num, dim1=channels, dim2=dim, dim3=dim;
@@ -458,6 +467,7 @@ float ****make_4darray(int num,int channels,int dim)
 	return array;
 }
 
+// Training - Only (Initialization of the weights)
 float Random_Normal(int loc, float scale)
 {
    // return a normally distributed random value
@@ -468,6 +478,7 @@ float Random_Normal(int loc, float scale)
 	return ((cos(2*3.14*v2)*sqrt(-2.*log(v1)))*scale + loc);
 }
 
+//Extreme value delimiter + smart accuracy fixer
 void normalize_custom(struct norm_data_ *norm_data)
 {
 	float ***image = norm_data->image;
@@ -502,6 +513,7 @@ void normalize_custom(struct norm_data_ *norm_data)
 	}
 }
 
+//calculate filter number given the layer
 int calc_f_num(int layer)
 {
 	//int f_num_init=16; //'always'
@@ -532,10 +544,9 @@ int calc_f_num(int layer)
 	    	return -1;
 	      // default statements
 	}
-
-
-
 }
+
+//Calculate channel number(of a filter, given the layer number plus the part(1 or 2) of the convolution block)
 int calc_ch_num(int layer,int tuple)
 {
 	//int f_num_init=16; //'always'
@@ -577,28 +588,7 @@ int main(void) {
 
 	puts("Main function init!");
 
-	/*
-	int channels,code,dim;
-	code = 1;//sigmoid(approximation)
-	channels = 2;
-	dim = 5;
 
-	float ***image1;
-	image1 = make_3darray(channels,dim);
-	for (int i=0;i<channels;i++)
-	{
-		for (int j=0;j<dim;j++)
-		{
-			for (int k=0;k<dim;k++)
-			{
-				image1[i][j][k] = (i+1)*(j*2+k*1) +1;
-				//printf("%f\t", image1[i][j][k]);//*(*(*(pA +i) + j) +k));
-			}
-			//printf("\n");
-		}
-		//printf("\n");
-	}
-	*/
 	///////////////////////////////////////////////////////
 	////////////////// TESTING SECTION ////////////////////
 
@@ -606,8 +596,8 @@ int main(void) {
 	//load images/labels//
 	ptr_images_data->dim = 64;
 	ptr_images_data->im_num = 4;
-	load_images(ptr_images_data);
-	load_labels(ptr_images_data);
+	load_images(ptr_images_data);// Path edit in the File Managment file
+	load_labels(ptr_images_data);// Path edit in the File Managment file
 	//////////////////////
 	struct params_ *ptr_params = &params;
 	// load pre-trained parameters (filters-bias-GN)//
@@ -615,17 +605,13 @@ int main(void) {
 	ptr_params->layers = 10; //number of total layers
 	ptr_params->num_f =16;   //init number of filters
 	//ptr_params->num_f = 16; it will be calculated itself
-	load_params(ptr_params);
+	load_params(ptr_params); // Path edit in the File Managment file
 	//////////////////////////////////////////////////
 
 	clock_t begin = clock();
 
-	/* here, do your time-consuming job */
-
-
 	//PREDICT
 	predict(ptr_images_data, ptr_params);//last variable is prediction image number,we choose the img we want
-	//#TODO:future update will be able to choose the limit of predicted images of the struct(1 more variable that will give that info)
 	clock_t end = clock();
 	double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
 	printf("\nTime needed: %.2f sec",time_spent);
@@ -633,21 +619,4 @@ int main(void) {
 	///////////////////////////////////////////////////////
 	printf("\nSuccess! - No Segmentation faults!");
 	return EXIT_SUCCESS;
-}
-
-float *****testff(float ****t){
-	float ****t2 = make_4darray(1,2,3);
-	for (int i=0;i<1;i++)
-		for (int j=0;j<2;j++)
-			for (int k=0;k<3;k++){
-				for(int y=0;y<3;y++)
-				{
-					t[i][j][k][y]=i+j+y+k;
-					t2[i][j][k][y]=2*i+2*j+2*y+2*k;
-				}
-			}
-	float *****t_array = (float *****)malloc(2*sizeof(float ****));
-	t_array[0] = t;
-	t_array[1] = t2;
-	return t_array;
 }

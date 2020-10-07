@@ -24,7 +24,7 @@ void maxpool(struct maxpool_data_ *ptr_maxpool_data)
 
 	int o_dim = (int)((dim - f)/s) +1;
 	output = make_3darray(ch_num, o_dim);
-	float max = -100000;//very small number
+	float max = -100000;//very small number(-inf)
 
 	for(int i=0; i<ch_num; i++)
 	{
@@ -46,10 +46,16 @@ void maxpool(struct maxpool_data_ *ptr_maxpool_data)
 			}
 		}
 	}
+
+	//save results
 	ptr_maxpool_data->output=output;
 	ptr_maxpool_data->o_dim=o_dim;
 }
 
+
+
+/// For  Training purpose ///
+/*
 void maxpool_backward(struct maxpoolbackward_data_ *ptr_maxpoolbackward_data)
 {
 	int f=2,s=2,ch_num,dim,o_dim,max,index;
@@ -116,5 +122,5 @@ void maxpool_backward(struct maxpoolbackward_data_ *ptr_maxpoolbackward_data)
 	ptr_maxpoolbackward_data->output = output;
 	ptr_maxpoolbackward_data->o_dim = o_dim;
 }
-
+*/
 

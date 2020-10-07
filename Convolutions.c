@@ -19,15 +19,16 @@ void conv(struct conv_data_ *ptr_conv_data)
 	float ***conv_in,***conv_out;
 	float ****filter,*bias;
 	int dim,f_num,ch_num,o_dim, mode;
+	//Unpacking data
 	conv_in = ptr_conv_data->conv_in;
 	filter = ptr_conv_data->filter;
 	bias = ptr_conv_data->bias;
 	dim = ptr_conv_data->dim;
-	mode = ptr_conv_data->mode;
-	ch_num = ptr_conv_data->ch_num;
-	f_num = ptr_conv_data->f_num;
-	int s=1;
-	int f = ptr_conv_data->f_dim; // transp conv :f=2 , conv : f=3
+	mode = ptr_conv_data->mode;  //padding mode
+	ch_num = ptr_conv_data->ch_num;//input channel nunmber
+	f_num = ptr_conv_data->f_num; //filter number
+	int s=1;                      //stride
+	int f = ptr_conv_data->f_dim; // transp convulution :f=2 , convolution : f=3
 
 	if (mode >= 1)//padding enabled - probably 1 which means keep the same dim as input
 	{
@@ -43,6 +44,7 @@ void conv(struct conv_data_ *ptr_conv_data)
 			{
 				for(int y = 0; y< dim_t; y++)
 				{
+					//Zero-padding
 					conv_in_t[i][x][y] = 0;
 					conv_in_t[i][y][x] = 0;
 					conv_in_t[i][(dim_t-1)-x][y] = 0;
@@ -60,9 +62,9 @@ void conv(struct conv_data_ *ptr_conv_data)
 		float sum;
 		for (int i=0; i<f_num; i++)//number of filters
 		{
-			for(int x=0; x<o_dim; x++)
+			for(int x=0; x<o_dim; x++)//output height
 			{
-				for(int y=0; y<o_dim; y++)
+				for(int y=0; y<o_dim; y++)//output width
 				{
 					sum=0;
 					//seeking on the temp image sub array that we want to mult item wise and then add them for the (x,y) result
@@ -89,9 +91,9 @@ void conv(struct conv_data_ *ptr_conv_data)
 		float sum;
 		for (int i=0; i<f_num; i++)//number of filters
 		{
-			for(int x=0; x<o_dim; x++)
+			for(int x=0; x<o_dim; x++)//output height
 			{
-				for(int y=0; y<o_dim; y++)
+				for(int y=0; y<o_dim; y++)//output width
 				{
 					sum=0;
 					//seeking on the temp image sub array that we want to mult item wise and then add them for the (x,y) result
@@ -111,7 +113,7 @@ void conv(struct conv_data_ *ptr_conv_data)
 		}
 
 	}
-
+	//push results into structure
 	ptr_conv_data->conv_out = conv_out;
 	ptr_conv_data->o_dim = o_dim;
 
@@ -119,6 +121,7 @@ void conv(struct conv_data_ *ptr_conv_data)
 }
 
 void convTransp(struct conv_data_ *ptr_conv_data)
+//Applying the simple transposed convolution algorithm- Not fpga friendly algorithm
 {
 	float ***conv_in,***conv_in_t,***conv_out;
 	float ****filter_unrot,*bias;
@@ -159,11 +162,11 @@ void convTransp(struct conv_data_ *ptr_conv_data)
 			for(int y=0; y<dim_t; y++)
 				conv_in_t[i][x][y] = 0;
 	////////////////////
-	//Fill the appropriate slots with data(with respect to : zeroinsertion between data=1, pad=1 )
+	//Fill the appropriate slots with data(with respect to : zero-insertion between data=1, pad=1 )
 	/*
 	 * MOre about how the above number occurred:
 	 * s is always 1, upsample kernerl f=2
-	 * zero insertions between pixels s_downsampled-1 = 2-1 =1
+	 * zero insertions between pixels (s_downsampled-1 = 2-1 =1
 	 * required padding in order to double my dimensions with the given data:
 	 * (i-1)*2 + k -2*p = output_size, where our padding is k - p -1 = 2-0-1=1(we assume p=0)
 	 */
@@ -172,15 +175,15 @@ void convTransp(struct conv_data_ *ptr_conv_data)
 			for(int y=1; y<dim_t; y+=2)
 				conv_in_t[i][x][y] = conv_in[i][(int)(x/2)][(int)(y/2)];
 
-	// Convolution 'normal'-padding=0 ///
+	// Convolution 'normal' (padding=0) //
 	//o_dim = (dim_t -2)/1 +1;   OR   o_dim = dim*2
 	conv_out = make_3darray(f_num, o_dim); //number of filters will determine the number of out image channels, dim will be the same in this case.
 	float sum;
 	for (int i=0; i<f_num; i++)//number of filters
 	{
-		for(int x=0; x<o_dim; x++)
+		for(int x=0; x<o_dim; x++)//output height
 		{
-			for(int y=0; y<o_dim; y++)
+			for(int y=0; y<o_dim; y++)//output width
 			{
 				sum=0;
 				//seeking on the temp image sub array that we want to mult item wise and then add them for the (x,y) result
@@ -194,10 +197,12 @@ void convTransp(struct conv_data_ *ptr_conv_data)
 						}
 					}
 				}
-				conv_out[i][x][y] = sum + bias[i];
+				conv_out[i][x][y] = sum + bias[i]; //add the bias per filter
 			}
 		}
 	}
+
+	//update structure's output result
 	ptr_conv_data->conv_out = conv_out;
 	ptr_conv_data->o_dim = o_dim;
 }
@@ -205,7 +210,7 @@ void convTransp(struct conv_data_ *ptr_conv_data)
 
 
 
-//////////////////// extras ///////////////////////////////////
+///////////////////////////// extras ///////////////////////////////////
 
 void crop2half(struct concat_crop_data_ *ptr_concat_crop_data)
 {
@@ -234,6 +239,7 @@ void crop2half(struct concat_crop_data_ *ptr_concat_crop_data)
 		}
 	}
 
+	// update structure's output results
 	ptr_concat_crop_data->image2 = image2;
 	ptr_concat_crop_data->image3 = image3;
 
@@ -244,7 +250,7 @@ void crop2half(struct concat_crop_data_ *ptr_concat_crop_data)
 void concat(struct concat_crop_data_ *ptr_concat_crop_data)
 {
 	float ***image1, ***image2, ***image3;
-	image2=ptr_concat_crop_data->image1; // UPDATED AND MATCHES TO KERAS CONCAT
+	image2=ptr_concat_crop_data->image1; // !!! UPDATED AND MATCHES TO KERAS CONCAT !!! (DC image first, then Skip connection)
 	image1=ptr_concat_crop_data->image2;
 	int dim = ptr_concat_crop_data->dim;// dimensions for both image1,2 (which is the same)
 	int ch_num = ptr_concat_crop_data->ch_num;
@@ -257,13 +263,13 @@ void concat(struct concat_crop_data_ *ptr_concat_crop_data)
 		{
 			for (int y=0; y<dim; y++)
 			{
-				image3[i][x][y] = image1[i][x][y];
-				image3[i+ch_num][x][y] = image2[i][x][y];
+				image3[i][x][y] = image1[i][x][y]; //put Deconvolution result first
+				image3[i+ch_num][x][y] = image2[i][x][y];//then put skip connection
 			}
 		}
 	}
 
-
+	//update structure's output results
 	ptr_concat_crop_data->image3 = image3;
 	ptr_concat_crop_data->o_ch_num = o_ch_num;
 

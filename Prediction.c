@@ -7,10 +7,6 @@
 void predict(struct images_data_ *images_data,struct params_ *params)
 {
 
-	///////////////////////// PRE-LOAD Data to Buffers /////////////////////////////
-
-	////////////////////////////////////////////////////////////////////////////////
-
 	printf("Choose an Image(number 0-%d) for prediction: ",(images_data->im_num -1));
 	int predict_num;
 	scanf("%d", &predict_num);
@@ -310,7 +306,7 @@ void predict(struct images_data_ *images_data,struct params_ *params)
 	ptr_norm_data->dim=dim;
 	ptr_norm_data->code = 1;
 
-	normalize_custom(ptr_norm_data);//it changes the conv_out ifself
+	normalize_custom(ptr_norm_data);//it changes the conv_out itself
 
 	float accuracy = Dice_Coef(conv_out, label,dim);
 	printf("\n\nAccuracy: %.2f % \n\n", (accuracy*100));

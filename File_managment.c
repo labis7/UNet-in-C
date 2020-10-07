@@ -9,8 +9,8 @@ void load_images(struct images_data_ *images_data)
 {
 
 	char **image_names;
-	int im_num = images_data->im_num;
-	int dim = images_data->dim;
+	int im_num = images_data->im_num;//NUmber of images in directory
+	int dim = images_data->dim;     //Resolution of the images
 	//create char space for image names
 	image_names = (char **)malloc(im_num*sizeof(char *));
 	for (int i = 0; i<im_num ; i++)
@@ -18,15 +18,18 @@ void load_images(struct images_data_ *images_data)
 
 	DIR *dir;
 	struct dirent *ent;
-	if ((dir = opendir ("/home/labis/eclipse-workspace/Utilities/images")) != NULL) {
+
+	//User must edit this path !
+	if ((dir = opendir ("/home/labis/eclipse-workspace/Utilities/images")) != NULL)
+	{
 		printf("\nLoading Images . . .");
-	  /* print all the files and directories within directory */
+	    /* print all the files and directories within directory */
 		int i=0;
 		int count=0;
 		while ((ent = readdir (dir)) != NULL)
 		{
 			//printf ("\n%s , type: %d\n", ent->d_name, ent->d_type);
-			if(ent->d_type == 8)//shows that its a string name
+			if(ent->d_type == 8)//shows that its a string name, then save it
 			{
 				strcpy(image_names[i], ent->d_name);
 				printf("\n%d) %s\n",count++,image_names[i]);
@@ -41,15 +44,16 @@ void load_images(struct images_data_ *images_data)
 	  perror ("Couldnt Open Directory(Check path!)");
 	  return exit(1);
 	}
-	//"/home/labis/data/salt/testfile.bin","rb"
+
     char line[20], path_name[200];
     int width, height, maxval;
     float ****image;
     FILE *fd;
     int ch_num=1;
-    image = make_4darray(im_num, ch_num, dim);
+    image = make_4darray(im_num, ch_num, dim);//create the required space for image storing
     for(int im=0; im< im_num; im++)
     {
+    	// PATH EDIT REQUIRED!!!
     	sprintf(path_name,"/home/labis/eclipse-workspace/Utilities/images/%s", image_names[im]);
     	fd = fopen(path_name,"rb");
 		if (fd == NULL) {
@@ -57,31 +61,29 @@ void load_images(struct images_data_ *images_data)
 			exit(1);
 		}
 	    fgets(line, sizeof(line), fd);
-	    if (strcmp(line, "P5\n") != 0) {
+	    if (strcmp(line, "P5\n") != 0) { // Read the 1st line and check if the file format is valid(.PGM)
 	        printf("Image is not in PGM(P5) format!\n");
 	        fclose(fd);
 	        exit(1);
 	    }
 
-	    // skip comment
-	    //fgets(line, sizeof(line), fd);
 
-	    // read header
+	    // read header(2nd line),(includes the widht and height resolution, there is a space character between them)
 	    if (fscanf(fd, "%d %d\n", &width, &height) != 2) {
 	        printf("Invalid header(width & height area)\n");
 	        fclose(fd);
 	        exit(1);
 	    }
-	    if (fscanf(fd, "%d\n", &maxval) != 1) {
+	    if (fscanf(fd, "%d\n", &maxval) != 1) {//3rd line: maxvalue: if 16bit-->65535, if 8 bit->256
 	        printf("Invalid header(maxval area)\n");
 	        fclose(fd);
 	        exit(1);
 	    }
-	    if (maxval == 65535) {
+	    if (maxval == 65535) {//then its a 16bit image
 
 	    	int ch_num=1,dim=height;
-			uint16_t *rbuffer = (uint16_t *)malloc(dim*dim*sizeof(int16_t));
-			if (fread(rbuffer, sizeof(uint16_t), (width * height), fd) != width * height) {
+			uint16_t *rbuffer = (uint16_t *)malloc(dim*dim*sizeof(int16_t));//create the appropriate 16bit buffer for the whole image
+			if (fread(rbuffer, sizeof(uint16_t), (width * height), fd) != width * height) {//read all the image at once
 				printf("Error reading pixel values!\n");
 				fclose(fd);
 				exit(1);
@@ -102,6 +104,7 @@ void load_images(struct images_data_ *images_data)
 				}
 				//printf("\n");
 			}
+			//free(rbuffer);
 	    }
 	    else //means its 8-bit
 	    {
@@ -128,6 +131,7 @@ void load_images(struct images_data_ *images_data)
 				}
 				//printf("\n");
 			}
+			//free(rbuffer);
 	    }
     }
     images_data->images = image;
@@ -135,6 +139,7 @@ void load_images(struct images_data_ *images_data)
 
 }
 
+//Same for labels
 void load_labels(struct images_data_ *images_data)
 {
 
@@ -268,8 +273,8 @@ void load_params(struct params_ *params)
 {
 	// Unpacking //
 
-	int batch =params->gn_batch; //default:2
-	int layers = params->layers; //default:10
+	int batch =params->gn_batch; //      default:2
+	int layers = params->layers; //  !!! default:10  !!!
 	//int f_num = params->num_f;
 	/////////////////
 	float *****filters = (float *****)malloc((layers*2*2-1)*sizeof(float ****));
@@ -279,7 +284,6 @@ void load_params(struct params_ *params)
 	float **gamma = (float **)malloc((layers*2*2-2)*sizeof(float *));//no out layers
 	float **beta = (float **)malloc((layers*2*2-2)*sizeof(float *));
 
-	//init reading from file //
 
 	////////////////////////// FILTERS ////////////////////////////
 	///////////////////////////////////////////////////////////////
@@ -287,12 +291,13 @@ void load_params(struct params_ *params)
 	int f_num,ch_num;
 	int sum=0;
 	int offset=0;
-	for (int i=1;i<=layers; i++)
+
+	for (int i=1;i<=layers; i++)// layers : 10 (default)
 	{
-		if(i!=10)
+		if(i!=10) // last layer is a special 1x1 convolution
 		{
-			sum += calc_f_num(i)*calc_ch_num(i,1)*3*3;
-			sum += calc_f_num(i)*calc_ch_num(i,2)*3*3;
+			sum += calc_f_num(i)*calc_ch_num(i,1)*3*3;//calculating number of parameters (1st part of the convolution block)
+			sum += calc_f_num(i)*calc_ch_num(i,2)*3*3;//calculating number of parameters (2nd part of the convolution block)
 		}
 		else
 		{
@@ -300,7 +305,7 @@ void load_params(struct params_ *params)
 		}
 	}
 	uint32_t *rbuffer;
-	FILE *ptr = fopen("/home/labis/eclipse-workspace/Utilities/weights_encrypted.bin","rb");
+	FILE *ptr = fopen("/home/labis/eclipse-workspace/Utilities/weights_encrypted.bin","rb"); // EDIT PATH //
 	if(ptr == NULL)
 	{
 		printf("Couldnt load directory!\nExiting . . . ");
@@ -312,13 +317,13 @@ void load_params(struct params_ *params)
 	int pos=0;
 	for (int i=1;i<=layers; i++)
 	{
-		if(i!=10)
+		if(i!=10)// All layer except last one which is the 1x1 convolution
 		{
-			f_num = calc_f_num(i);
-			ch_num = calc_ch_num(i,1);
+			f_num = calc_f_num(i);    //calculatre current layer's filters
+			ch_num = calc_ch_num(i,1);//calculate current layer's channels(filter)
 			float ****f = make_4darray(calc_f_num(i), calc_ch_num(i,1), 3);
-			for(int k=0; k<f_num; k++)
-				for(int j=0; j< ch_num; j++)
+			for(int k=0; k<f_num; k++)      //filters
+				for(int j=0; j< ch_num; j++)//channels
 					for(int x=0; x<dim; x++)
 						for (int y=0; y<dim; y++)
 						{
@@ -326,7 +331,7 @@ void load_params(struct params_ *params)
 							offset++;
 						}
 			pos = (i-1)*2;
-			filters[pos]=f;
+			filters[pos]=f; // careful - specific way of indexing data
 
 			//f_num = calc_f_num(i);
 			ch_num = calc_ch_num(i,2);
@@ -342,7 +347,7 @@ void load_params(struct params_ *params)
 			pos += 1;
 			filters[pos]=f;
 		}
-		else//i == 10 --> last 1x1 conv
+		else//i == 10 --> last 1x1 convolution
 		{
 			f_num = calc_f_num(i);
 			ch_num = calc_ch_num(i,1);
@@ -364,7 +369,7 @@ void load_params(struct params_ *params)
 	////////////////////////////////////////////
 	sum=1;//already last layer out is counted, (just 1 scalar bias_out)
 	offset=0;
-	for (int i=1;i<=(layers-1); i++)//9 layers, last layer is precalculated
+	for (int i=1;i<=(layers-1); i++)//9 layers, last layer is calculated above(sum=1)
 		sum += calc_f_num(i)*2;
 
 	rbuffer = (uint32_t *)malloc(sum*sizeof(int32_t));
@@ -411,14 +416,14 @@ void load_params(struct params_ *params)
 	dim=2;
 	sum=0;
 	offset=0;
-	sum =((128*256) +(64*128)+(32*64)+(16*32))*2*2;
+	sum =((128*256) +(64*128)+(32*64)+(16*32))*2*2;// calculation: filter1_num*channel1_num + ... + filterN_numb*channelN_num)*KernelSize*KernelSize
 	rbuffer = (uint32_t *)malloc(sum*sizeof(int32_t));
 	fread(rbuffer, sum*sizeof(uint32_t), 1, ptr);
 	pos=0;
 	for (int i=6;i<=(layers-1); i++)
 	{
-		f_num = calc_f_num(i);//same as filter 6_1
-		ch_num = calc_ch_num(i,1);//same as filter 6_1
+		f_num = calc_f_num(i);//same as filter i_1
+		ch_num = calc_ch_num(i,1);//same as filter i_1 (e.g. Transp conv 6 filter =(shape)= conv 6_1)
 		float ****f = make_4darray(calc_f_num(i), calc_ch_num(i,1), 2);
 		for(int k=0; k<f_num; k++)
 			for(int j=0; j< ch_num; j++)
@@ -522,6 +527,8 @@ void load_params(struct params_ *params)
 	params->be=beta;
 	params->ga=gamma;
 	*/
+
+	//Pack parameters back to the structure
 	params->b_dc=b_dc;
 	params->f_dc = f_dc;
 	params->bias=bias;
